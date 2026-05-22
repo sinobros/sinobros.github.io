@@ -7,9 +7,7 @@ const GOOGLE_FORM_URL =
 
 const handleSubmit = async (event) => {
   event.preventDefault();
-//  const fullNameValue = fullName.value;
   const emailValue = email.value;
-//  const notesValue = notes.value;
   const formData = {
     "entry.684158808": emailValue, // entry.253486596 is the name attribute for the full name field on our google form
   };
