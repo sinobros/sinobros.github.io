@@ -26,7 +26,7 @@ const handleSubmit = async (event) => {
       },
       body: appendedFormData,
     });
-    alert("Form submitted to google spreadsheet successfully!");
+    alert("We will be in touch soon!");
   } catch (error) {
     alert("Something went wrong, please try again");
     console.log(error);
