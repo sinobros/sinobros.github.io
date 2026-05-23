@@ -9,7 +9,6 @@ const GOOGLE_FORM_URL =
 const handleSubmit = async (event) => {
   event.preventDefault();
   const formData = {
-    "entry.253486596": name.value,
     "entry.684158808": email.value,
   };
   const appendedFormData = newFormData({ ...formData });
