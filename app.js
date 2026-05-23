@@ -1,4 +1,5 @@
 "use strict";
+const name = document.querySelector("#name");
 const email = document.querySelector("#email");
 const button = document.querySelector("#button");
 const form = document.querySelector("#form");
@@ -7,16 +8,16 @@ const GOOGLE_FORM_URL =
 
 const handleSubmit = async (event) => {
   event.preventDefault();
-  const emailValue = email.value;
   const formData = {
-    "entry.684158808": emailValue, // entry.253486596 is the name attribute for the full name field on our google form
+    "entry.253486596": name.value,
+    "entry.684158808": email.value,
   };
   const appendedFormData = newFormData({ ...formData });
 
   try {
     button.disabled = true;
     button.textContent = "processing...";
-    const response = await fetch(GOOGLE_FORM_URL, {
+    await fetch(GOOGLE_FORM_URL, {
       method: "POST",
       mode: "no-cors",
       headers: {
@@ -25,18 +26,18 @@ const handleSubmit = async (event) => {
       body: appendedFormData,
     });
     alert("We will be in touch soon!");
+    form.reset();
   } catch (error) {
     alert("Something went wrong, please try again");
     console.log(error);
   } finally {
     button.disabled = false;
-    button.textContent = "Submit";
+    button.textContent = "Join Sinobros";
   }
 };
 
 form.addEventListener("submit", handleSubmit);
 
-// A helper function to help convert the data to FormData
 const newFormData = (inputs) => {
   const formData = new FormData();
   const newArr = Object.entries(inputs);

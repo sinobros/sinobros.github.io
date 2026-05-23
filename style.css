@@ -1,41 +1,365 @@
 :root {
-  --border-radius: 5px;
+  --bg: #000000;
+  --yellow: #ffe600;
+  --yellow-soft: #f5c518;
+  --red: #e51e47;
+  --text: #ffe600;
+  --muted: #999999;
+  --border-radius: 4px;
+  --container: 1280px;
 }
 
-.container {
-  width: 100%;
-  max-width: 750px;
-  margin: 0 auto;
-  padding: 20px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-#form {
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-label {
+
+/* ---------- Header ---------- */
+.site-header {
   display: flex;
-  flex-direction: column;
-  padding-bottom: 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 64px;
 }
 
-input,
-textarea {
-  padding: 15px;
-  border: 1px solid gray;
+.nav {
+  display: flex;
+  gap: 56px;
+  margin-left: 120px;
+}
+
+.nav-link {
+  color: var(--yellow);
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.nav-link.active {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.nav-link:hover {
+  filter: brightness(1.2);
+}
+
+.login-btn {
+  background: var(--red);
+  color: #1a0007;
+  padding: 14px 36px;
   border-radius: var(--border-radius);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 17px;
+  transition: filter 0.2s ease-in-out;
+}
+
+.login-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  padding: 60px 64px 20px;
+}
+
+.hero-title {
+  color: var(--yellow);
+  font-size: clamp(72px, 17vw, 280px);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  text-align: left;
+}
+
+/* ---------- Intro ---------- */
+.intro {
+  padding: 60px 64px 80px;
+}
+
+.intro-inner {
+  max-width: 640px;
+}
+
+.intro-text {
+  color: var(--yellow);
+  font-size: 22px;
+  line-height: 1.45;
+  font-weight: 400;
+  margin-bottom: 36px;
+}
+
+.cta-btn {
+  display: inline-block;
+  background: var(--red);
+  color: #1a0007;
+  padding: 16px 32px;
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 17px;
+  transition: filter 0.2s ease-in-out;
+}
+
+.cta-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- Features (3 cards) ---------- */
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  padding: 80px 64px;
+}
+
+.feature-card {
+  background: #0a0a0a;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-art {
+  height: 280px;
+  margin: -32px -32px 24px;
+  background: radial-gradient(
+      ellipse at 30% 40%,
+      rgba(229, 30, 71, 0.25),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 70% 70%,
+      rgba(255, 230, 0, 0.18),
+      transparent 60%
+    ),
+    #0a0a0a;
+}
+
+.feature-title {
+  color: var(--yellow);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+}
+
+.feature-text {
+  color: var(--yellow);
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* ---------- Pitch ---------- */
+.pitch {
+  padding: 80px 64px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pitch-inner {
+  max-width: 540px;
+}
+
+.pitch-title {
+  color: var(--yellow);
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 24px;
+}
+
+.pitch-text {
+  color: var(--yellow);
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+/* ---------- Banner ---------- */
+.banner {
+  height: 240px;
+  background: var(--red);
+}
+
+/* ---------- Join (form) ---------- */
+.join {
+  padding: 80px 64px;
+}
+
+.join-title {
+  color: var(--yellow);
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 32px;
+}
+
+.join-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 24px;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  color: var(--yellow);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+input {
+  padding: 14px 12px;
+  border: 1px solid var(--red);
+  background: transparent;
+  color: var(--yellow);
+  font-size: 16px;
+  font-family: inherit;
+  border-radius: 0;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--yellow);
 }
 
 button {
-  background: rgb(7, 67, 49);
+  background: var(--yellow);
   border: none;
-  color: #fff;
-  padding: 15px;
+  color: #1a0007;
+  padding: 16px 40px;
   cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+  font-family: inherit;
   border-radius: var(--border-radius);
-  margin-top: 15px;
-  transition: all 0.3s ease-in-out;
+  transition: filter 0.2s ease-in-out;
+  min-height: 50px;
 }
-button:hover {
-  filter: brightness(1.5);
+
+button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+  margin-top: auto;
+  padding: 48px 64px 40px;
+}
+
+.footer-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.footer-link {
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.footer-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--red);
+}
+
+.footer-copy {
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .site-header {
+    padding: 20px 24px;
+  }
+  .nav {
+    margin-left: 0;
+    gap: 24px;
+  }
+  .nav-link {
+    font-size: 16px;
+  }
+  .login-btn {
+    padding: 10px 22px;
+    font-size: 15px;
+  }
+  .hero,
+  .intro,
+  .features,
+  .pitch,
+  .join,
+  .site-footer {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .features {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .pitch {
+    justify-content: flex-start;
+  }
+  .join-form {
+    grid-template-columns: 1fr;
+  }
+  .footer-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding-top: 40px;
+  }
+  .intro-text {
+    font-size: 18px;
+  }
+  .pitch-title,
+  .join-title {
+    font-size: 28px;
+  }
 }

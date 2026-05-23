@@ -4,20 +4,101 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
     <title>Sinobros</title>
   </head>
   <body>
-    <main class="container">
-      <h1>Interested in Sinobros?</h1>
-      <form id="form">
-        <label for="email">
-          Email Address:
-          <input type="text" name="email" id="email" required />
+    <header class="site-header">
+      <nav class="nav">
+        <a href="#" class="nav-link active">home</a>
+        <a href="#about" class="nav-link">about</a>
+      </nav>
+      <a href="#join" class="login-btn">login</a>
+    </header>
+
+    <section class="hero">
+      <h1 class="hero-title">sinobros</h1>
+    </section>
+
+    <section class="intro">
+      <div class="intro-inner">
+        <p class="intro-text">
+          Step into a legendary realm where the bold gather and the brave rise.
+          Claim your seat at the table and play with fire.
+        </p>
+        <a href="#join" class="cta-btn">Play with Fire</a>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-art" aria-hidden="true"></div>
+        <h3 class="feature-title">The Spark</h3>
+        <p class="feature-text">
+          A high-stakes adventure where every move ignites the fire within.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-art" aria-hidden="true"></div>
+        <h3 class="feature-title">The Vault</h3>
+        <p class="feature-text">
+          Deep within Sinobros, discover hidden gold and legendary rewards.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-art" aria-hidden="true"></div>
+        <h3 class="feature-title">The Crown</h3>
+        <p class="feature-text">
+          Experience the ultimate atmosphere with our most legendary moments.
+        </p>
+      </div>
+    </section>
+
+    <section class="pitch">
+      <div class="pitch-inner">
+        <h2 class="pitch-title">The Sinobros Fire</h2>
+        <p class="pitch-text">
+          Master the art of the game where every choice is a gamble and every
+          win is a legacy. Step into a realm where ambition is the only
+          currency that matters.
+        </p>
+      </div>
+    </section>
+
+    <div class="banner" aria-hidden="true"></div>
+
+    <section class="join" id="join">
+      <h2 class="join-title">Interested in Sinobros?</h2>
+      <form id="form" class="join-form">
+        <label class="field">
+          <span class="field-label">Full Name</span>
+          <input type="text" name="name" id="name" />
         </label>
-        <button type="submit" id="button">Submit</button>
+        <label class="field">
+          <span class="field-label">Email Address *</span>
+          <input type="email" name="email" id="email" required />
+        </label>
+        <button type="submit" id="button">Join Sinobros</button>
       </form>
-    </main>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-row">
+        <span class="footer-link">THE INNER CIRCLE</span>
+        <span class="footer-divider"></span>
+        <span class="footer-link">SECURED BY FIRE</span>
+        <span class="footer-divider"></span>
+        <span class="footer-link">YOUR LEGACY STARTS HERE</span>
+      </div>
+      <p class="footer-copy">&copy; 2026 SINOBROS. ALL RIGHTS RESERVED.</p>
+    </footer>
+
     <script src="app.js"></script>
   </body>
 </html>
