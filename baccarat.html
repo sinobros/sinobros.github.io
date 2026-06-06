@@ -588,6 +588,127 @@
         animation: pulse 1.4s ease-in-out infinite;
       }
 
+      /* ---------- Name input ---------- */
+      .name-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 28px;
+        border: 1px solid #1f1f1f;
+        background: #0a0a0a;
+      }
+
+      .name-label {
+        color: var(--yellow);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .name-field {
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--red);
+        color: var(--yellow);
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 4px 6px;
+        width: 120px;
+        outline: none;
+      }
+
+      .name-field::placeholder {
+        color: rgba(255, 230, 0, 0.35);
+        font-weight: 400;
+      }
+
+      /* ---------- Leaderboard ---------- */
+      .leaderboard {
+        margin-top: 24px;
+        padding: 28px 32px;
+        background: #0a0a0a;
+        border: 1px solid #1f1f1f;
+        color: var(--yellow);
+      }
+
+      .leaderboard[hidden] { display: none; }
+
+      .leaderboard-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+
+      .leaderboard-title {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .leaderboard-rank-badge {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--red);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .leaderboard-table th {
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #1f1f1f;
+      }
+
+      .leaderboard-table td {
+        padding: 10px 0;
+        font-size: 15px;
+        font-weight: 600;
+        border-bottom: 1px solid #111;
+      }
+
+      .leaderboard-table td:first-child {
+        width: 36px;
+        opacity: 0.5;
+        font-size: 13px;
+      }
+
+      .leaderboard-table td:last-child {
+        text-align: right;
+        color: var(--red);
+        font-weight: 800;
+      }
+
+      .leaderboard-table tr.highlight td {
+        color: var(--yellow);
+      }
+
+      .leaderboard-table tr.highlight td:last-child {
+        color: var(--yellow);
+      }
+
+      .leaderboard-loading {
+        font-size: 13px;
+        opacity: 0.5;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
       @media (max-width: 960px) {
         .baccarat-main {
           padding: 24px;
@@ -819,9 +940,15 @@
     <main class="baccarat-main">
       <div class="table-header">
         <h1 class="table-title">baccarat</h1>
-        <div class="balance-box">
-          <span class="balance-label">Dragon Gold</span>
-          <span class="balance-amount" id="balance">1000</span>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div class="name-input-wrap">
+            <label class="name-label" for="player-name">Name</label>
+            <input class="name-field" id="player-name" type="text" maxlength="24" placeholder="enter name" autocomplete="off" />
+          </div>
+          <div class="balance-box">
+            <span class="balance-label">Dragon Gold</span>
+            <span class="balance-amount" id="balance">1000</span>
+          </div>
         </div>
       </div>
 
@@ -897,6 +1024,14 @@
             Rules
           </button>
         </div>
+      </div>
+
+      <div class="leaderboard" id="leaderboard" hidden>
+        <div class="leaderboard-header">
+          <span class="leaderboard-title">Leaderboard</span>
+          <span class="leaderboard-rank-badge" id="your-rank"></span>
+        </div>
+        <div id="leaderboard-body"><span class="leaderboard-loading">Loading…</span></div>
       </div>
 
       <div class="rules-panel" id="rules-panel" hidden>
@@ -1300,6 +1435,7 @@
         setStatus("", false);
         await sleep(PAUSE_BEFORE_RESULT_MS);
         settle();
+        submitScore();
 
         state.bets = { player: 0, tie: 0, banker: 0 };
         document.querySelectorAll(".bet-btn.selected").forEach((b) =>
@@ -1351,11 +1487,81 @@
         });
       }
 
+      const leaderboardEl = document.getElementById("leaderboard");
+      const leaderboardBodyEl = document.getElementById("leaderboard-body");
+      const yourRankEl = document.getElementById("your-rank");
+      const playerNameEl = document.getElementById("player-name");
+
+      function renderLeaderboard(topTen, myRank, submittedName) {
+        leaderboardEl.hidden = false;
+        yourRankEl.textContent = myRank ? `Your rank: #${myRank}` : "";
+        const rows = topTen.map((entry, i) => {
+          const isYou = entry.name === submittedName && (i + 1) === myRank;
+          return `<tr class="${isYou ? "highlight" : ""}">
+            <td>#${i + 1}</td>
+            <td>${entry.name}</td>
+            <td>${entry.score}</td>
+          </tr>`;
+        }).join("");
+        leaderboardBodyEl.innerHTML = `
+          <table class="leaderboard-table">
+            <thead><tr><th>#</th><th>Name</th><th>Score</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      }
+
+      async function submitScore() {
+        const name = playerNameEl.value.trim();
+        if (!name) return;
+        leaderboardEl.hidden = false;
+        leaderboardBodyEl.innerHTML = '<span class="leaderboard-loading">Submitting…</span>';
+        yourRankEl.textContent = "";
+
+        const API = "http://143.47.102.185:3000/highscore";
+        const body = new URLSearchParams({ name, score: state.balance }).toString();
+
+        // POST the score. The server records it even if CORS blocks the response.
+        let postData = null;
+        try {
+          const res = await fetch(API, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body,
+          });
+          postData = await res.json();
+        } catch {
+          // CORS blocked reading the POST response — score was still recorded.
+          // Fall through and try a GET for the leaderboard.
+        }
+
+        if (postData) {
+          renderLeaderboard(postData.topTen, postData.rank, name);
+          return;
+        }
+
+        // Try fetching the leaderboard via GET (some servers allow GET with CORS even when POST responses are blocked).
+        try {
+          const res = await fetch(API, { method: "GET" });
+          const data = await res.json();
+          // GET returns leaderboard without personal rank
+          renderLeaderboard(data.topTen ?? data, null, name);
+        } catch {
+          leaderboardBodyEl.innerHTML =
+            '<span class="leaderboard-loading">Score submitted! Leaderboard blocked by browser CORS policy — ask the server to add Access-Control-Allow-Origin.</span>';
+        }
+      }
+
       function init() {
         state.shoe = buildShoe();
         renderBalance();
         renderStakes();
         selectChip(state.chip);
+
+        const saved = localStorage.getItem("baccarat-name");
+        if (saved) playerNameEl.value = saved;
+        playerNameEl.addEventListener("change", () => {
+          localStorage.setItem("baccarat-name", playerNameEl.value.trim());
+        });
 
         els.betButtons.forEach((b) => {
           b.addEventListener("click", () => placeBet(b.dataset.bet));
