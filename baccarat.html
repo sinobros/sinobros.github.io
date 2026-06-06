@@ -1517,7 +1517,7 @@
         leaderboardBodyEl.innerHTML = '<span class="leaderboard-loading">Submitting…</span>';
         yourRankEl.textContent = "";
 
-        const API = "http://143.47.102.185:3000/highscore";
+        const API = "https://143.47.102.185:3000/highscore";
         const body = new URLSearchParams({ name, score: state.balance }).toString();
 
         // POST the score. The server records it even if CORS blocks the response.
