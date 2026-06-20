@@ -197,14 +197,15 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
         color: #f4e9c8;
         text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);
-        transform-origin: 0 0;
+        transform-origin: 50% 50%;
         white-space: nowrap;
-        padding: 1px 3px;
+        padding: 1px 4px;
         border-radius: 2px;
+        letter-spacing: 0.5px;
       }
       .ball {
         position: absolute;
@@ -800,14 +801,15 @@
       function buildWheelNumbers() {
         const wheelEl = els.wheel;
         wheelEl.querySelectorAll('.wheel-number-item').forEach(el => el.remove());
-        const radius = 138;
+        const radius = 135;
         const angleStep = 360 / 37;
         WHEEL_SEQUENCE.forEach((num, i) => {
           const el = document.createElement('div');
           el.className = 'wheel-number-item';
           el.textContent = num;
-          const angle = i * angleStep;
-          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(-${angle}deg)`;
+          const angle = (i + 0.5) * angleStep;
+          // Radial orientation: bottom toward center, top toward outer edge
+          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(90deg)`;
           wheelEl.appendChild(el);
         });
       }
