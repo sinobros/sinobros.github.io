@@ -808,8 +808,8 @@
           el.className = 'wheel-number-item';
           el.textContent = num;
           const angle = (i + 0.5) * angleStep;
-          // Radial orientation: bottom toward center, top toward outer edge
-          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(90deg)`;
+          // Radial placement, text at 0 degrees (upright/horizontal, never upside-down)
+          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(-${angle}deg)`;
           wheelEl.appendChild(el);
         });
       }
