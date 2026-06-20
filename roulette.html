@@ -201,11 +201,12 @@
         font-weight: 800;
         color: #f4e9c8;
         text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);
-        transform-origin: 50% 50%;
+        transform-origin: 50% 0;
         white-space: nowrap;
         padding: 1px 4px;
         border-radius: 2px;
         letter-spacing: 0.5px;
+        z-index: 3;
       }
       .ball {
         position: absolute;
@@ -801,7 +802,7 @@
       function buildWheelNumbers() {
         const wheelEl = els.wheel;
         wheelEl.querySelectorAll('.wheel-number-item').forEach(el => el.remove());
-        const radius = 135;
+        const radius = 142;
         const angleStep = 360 / 37;
         WHEEL_SEQUENCE.forEach((num, i) => {
           const el = document.createElement('div');
