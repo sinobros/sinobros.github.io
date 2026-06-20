@@ -1284,32 +1284,28 @@
         let net = 0;
         const lines = [];
         if (outcome === "player") {
-          net += state.bets.player;
-          if (state.bets.player > 0) lines.push(`+${state.bets.player} on Player`);
+          net += state.bets.player * 2;
+          if (state.bets.player > 0) lines.push(`+${state.bets.player * 2} on Player`);
           if (state.bets.banker > 0) {
-            net -= state.bets.banker;
             lines.push(`-${state.bets.banker} on Banker`);
           }
           if (state.bets.tie > 0) {
-            net -= state.bets.tie;
             lines.push(`-${state.bets.tie} on Tie`);
           }
         } else if (outcome === "banker") {
           const won = Math.floor(state.bets.banker * 0.95);
-          net += won;
-          if (state.bets.banker > 0) lines.push(`+${won} on Banker`);
+          net += state.bets.banker + won;
+          if (state.bets.banker > 0) lines.push(`+${state.bets.banker + won} on Banker`);
           if (state.bets.player > 0) {
-            net -= state.bets.player;
             lines.push(`-${state.bets.player} on Player`);
           }
           if (state.bets.tie > 0) {
-            net -= state.bets.tie;
             lines.push(`-${state.bets.tie} on Tie`);
           }
         } else {
           if (state.bets.tie > 0) {
-            net += state.bets.tie * 8;
-            lines.push(`+${state.bets.tie * 8} on Tie`);
+            net += state.bets.tie * 9;
+            lines.push(`+${state.bets.tie * 9} on Tie`);
           }
         }
 
