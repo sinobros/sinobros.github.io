@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Heads-Up Hold'em — Sinobros</title>
+    <style>
+      .poker-main { padding: 40px 64px 80px; }
+      .poker-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:28px; }
+      .poker-title { color:var(--yellow); font-size:clamp(44px,8vw,98px); line-height:.92; letter-spacing:-.055em; font-weight:900; max-width:980px; }
+      .poker-subtitle { max-width:720px; color:var(--yellow); opacity:.78; font-size:16px; margin-top:14px; }
+      .api-panel, .lobby-panel, .state-panel, .history-panel { background:#0a0a0a; border:1px solid #1f1f1f; padding:22px; }
+      .api-panel { display:grid; grid-template-columns: 1.5fr 1fr auto; gap:14px; align-items:end; margin-bottom:22px; }
+      .api-panel label, .lobby-panel label { display:flex; flex-direction:column; gap:8px; color:var(--yellow); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+      .api-panel input, .lobby-panel input, .raise-input { border:1px solid var(--red); background:#050505; color:var(--yellow); padding:13px 12px; font:inherit; min-width:0; }
+      .status-chip { justify-self:start; border:1px solid var(--red); color:var(--yellow); padding:12px 14px; font-size:12px; font-weight:800; text-transform:uppercase; }
+      .status-chip.ok { border-color:var(--yellow); background:rgba(255,230,0,.08); }
+      .status-chip.bad { border-color:var(--red); background:rgba(229,30,71,.12); }
+      .poker-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(320px,.8fr); gap:22px; align-items:start; }
+      .lobby-panel { margin-bottom:22px; display:grid; grid-template-columns:1fr auto auto; gap:14px; align-items:end; }
+      .table-shell { position:relative; min-height:650px; padding:34px; overflow:hidden; border:1px solid #1f1f1f; background:radial-gradient(ellipse at 50% 50%, rgba(229,30,71,.2), transparent 60%), radial-gradient(ellipse at 50% 75%, rgba(255,230,0,.11), transparent 62%), #050505; }
+      .table-shell::before { content:""; position:absolute; inset:28px; border-radius:48%; border:2px solid rgba(255,230,0,.18); box-shadow:inset 0 0 80px rgba(229,30,71,.12); pointer-events:none; }
+      .seat-zone { position:relative; z-index:1; display:flex; justify-content:space-between; gap:18px; align-items:center; margin-bottom:28px; }
+      .seat-card { min-width:220px; border:1px solid rgba(229,30,71,.75); background:rgba(0,0,0,.72); padding:16px; }
+      .seat-card.active { border-color:var(--yellow); box-shadow:0 0 22px rgba(255,230,0,.12); }
+      .seat-name { font-weight:900; font-size:20px; color:var(--yellow); text-transform:uppercase; letter-spacing:.04em; }
+      .seat-meta { color:var(--yellow); opacity:.7; font-size:13px; margin-top:4px; }
+      .cards { display:flex; gap:10px; min-height:98px; align-items:center; margin-top:14px; }
+      .playing-card { width:66px; height:92px; border-radius:8px; background:#f8f4e6; color:#111; border:1px solid rgba(255,255,255,.3); display:grid; place-items:center; font-weight:900; font-size:24px; box-shadow:0 10px 24px rgba(0,0,0,.45); }
+      .playing-card.red { color:#c8102e; }
+      .playing-card.back { background:repeating-linear-gradient(45deg,#1a0007 0 7px,#2a0008 7px 14px); border-color:var(--red); color:var(--yellow); }
+      .board-wrap { position:relative; z-index:1; text-align:center; margin:48px auto; max-width:620px; }
+      .pot { display:inline-flex; gap:10px; align-items:center; background:var(--red); color:var(--yellow); padding:12px 24px; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin-bottom:20px; }
+      .board { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; min-height:104px; }
+      .action-panel { position:relative; z-index:1; background:rgba(0,0,0,.78); border:1px solid #1f1f1f; padding:20px; margin-top:26px; }
+      .action-title { color:var(--yellow); font-weight:900; font-size:22px; margin-bottom:10px; }
+      .action-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+      .action-btn, .mini-btn { background:var(--yellow); color:#1a0007; border:0; border-radius:var(--border-radius); padding:13px 18px; font-weight:900; font-family:inherit; cursor:pointer; text-transform:uppercase; }
+      .action-btn.secondary, .mini-btn.secondary { background:transparent; border:1px solid var(--red); color:var(--yellow); }
+      .action-btn:disabled, .mini-btn:disabled { opacity:.35; cursor:not-allowed; }
+      .state-panel h3, .history-panel h3 { color:var(--yellow); font-size:24px; margin-bottom:14px; }
+      .kv { display:grid; grid-template-columns:130px 1fr; gap:8px; color:var(--yellow); font-size:14px; padding:8px 0; border-bottom:1px solid rgba(255,230,0,.08); }
+      .kv span:first-child { opacity:.55; text-transform:uppercase; font-size:11px; letter-spacing:.08em; }
+      .event-log { list-style:none; display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; }
+      .event-log li { color:var(--yellow); opacity:.82; font-size:13px; border-left:2px solid var(--red); padding-left:10px; }
+      .banner-note { color:var(--yellow); border:1px solid rgba(255,230,0,.22); padding:14px 16px; background:rgba(255,230,0,.06); margin-bottom:16px; }
+      @media (max-width: 960px) { .poker-main { padding:28px 24px 60px; } .api-panel, .lobby-panel, .poker-grid { grid-template-columns:1fr; } .table-shell { padding:20px; } .seat-zone { flex-direction:column; align-items:stretch; } }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav">
+        <a href="index.html" class="nav-link">home</a>
+        <a href="index.html#about" class="nav-link">about</a>
+        <a href="blackjack.html" class="nav-link">blackjack</a>
+        <a href="baccarat.html" class="nav-link">baccarat</a>
+        <a href="roulette.html" class="nav-link">roulette</a>
+        <a href="poker.html" class="nav-link active">poker</a>
+      </nav>
+      <a href="index.html#join" class="login-btn">join</a>
+    </header>
+
+    <main class="poker-main">
+      <section class="poker-hero">
+        <div>
+          <h1 class="poker-title">heads-up hold'em</h1>
+          <p class="poker-subtitle">A server-authoritative, play-money Texas Hold'em tournament table. The static GitHub Pages frontend talks to a separate Node REST backend and polls for live table updates.</p>
+        </div>
+      </section>
+
+      <section class="api-panel">
+        <label>Backend API URL <input id="api-url" spellcheck="false" /></label>
+        <label>Player handle <input id="handle" maxlength="24" placeholder="Dragon" /></label>
+        <span id="api-status" class="status-chip">checking backend…</span>
+      </section>
+
+      <section class="lobby-panel">
+        <label>Match ID <input id="match-id" placeholder="create or paste a match id" /></label>
+        <button id="create-match" class="mini-btn" type="button">Create Match</button>
+        <button id="join-match" class="mini-btn secondary" type="button">Join Match</button>
+      </section>
+
+      <div id="offline-note" class="banner-note" hidden>Backend unavailable. Start the Node API locally with <strong>cd backend && npm start</strong>, then set the API URL to <strong>http://localhost:8787</strong>. The deployed static frontend can point to any separate poker API domain.</div>
+
+      <section class="poker-grid">
+        <div class="table-shell">
+          <div class="seat-zone">
+            <div class="seat-card" id="seat-opp">
+              <div class="seat-name" id="opp-name">Waiting opponent</div>
+              <div class="seat-meta" id="opp-stack">Stack —</div>
+              <div class="cards" id="opp-cards"></div>
+            </div>
+            <div class="seat-card" id="seat-you">
+              <div class="seat-name" id="you-name">You</div>
+              <div class="seat-meta" id="you-stack">Stack —</div>
+              <div class="cards" id="you-cards"></div>
+            </div>
+          </div>
+
+          <div class="board-wrap">
+            <div class="pot">Pot <span id="pot">0</span></div>
+            <div class="board" id="board"></div>
+          </div>
+
+          <div class="action-panel">
+            <div class="action-title" id="turn-title">Create or join a match</div>
+            <p class="poker-subtitle" id="result-text">Play-money heads-up tournament. Button posts the small blind preflop; big blind acts first after the flop.</p>
+            <div class="action-row" id="actions">
+              <button data-action="check" class="action-btn" type="button">Check</button>
+              <button data-action="call" class="action-btn" type="button">Call</button>
+              <button data-action="fold" class="action-btn secondary" type="button">Fold</button>
+              <input id="raise-amount" class="raise-input" type="number" min="1" step="10" value="40" />
+              <button data-action="bet" class="action-btn" type="button">Bet</button>
+              <button data-action="raise" class="action-btn" type="button">Raise</button>
+              <button data-action="all-in" class="action-btn secondary" type="button">All In</button>
+              <button data-action="next-hand" class="action-btn secondary" type="button">Next Hand</button>
+            </div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="state-panel">
+            <h3>Tournament State</h3>
+            <div class="kv"><span>Match</span><strong id="state-match">—</strong></div>
+            <div class="kv"><span>Phase</span><strong id="state-phase">—</strong></div>
+            <div class="kv"><span>Street</span><strong id="state-street">—</strong></div>
+            <div class="kv"><span>Button</span><strong id="state-button">—</strong></div>
+            <div class="kv"><span>Blinds</span><strong>10 / 20</strong></div>
+            <div class="kv"><span>Actor</span><strong id="state-actor">—</strong></div>
+            <div class="kv"><span>Hands</span><strong id="state-hands">0</strong></div>
+          </div>
+          <div class="history-panel" style="margin-top:22px;">
+            <h3>Hand History</h3>
+            <ul class="event-log" id="event-log"></ul>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-row"><span class="footer-link">REST POLLING</span><span class="footer-divider"></span><span class="footer-link">SERVER AUTHORITATIVE</span><span class="footer-divider"></span><span class="footer-link">PLAY MONEY</span></div>
+      <p class="footer-copy">&copy; 2026 SINOBROS. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+      "use strict";
+      const DEFAULT_API = "https://poker-api.sinobros.org";
+      const POLL_MS = 1500;
+      const state = { api: localStorage.getItem("sinobrosPokerApiUrl") || DEFAULT_API, handle: localStorage.getItem("sinobrosPokerHandle") || "Dragon", matchId: localStorage.getItem("sinobrosPokerMatchId") || "", playerId: localStorage.getItem("sinobrosPokerPlayerId") || "", snapshot: null, poller: null };
+      const $ = (id) => document.getElementById(id);
+      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands") };
+
+      function saveBasics() { localStorage.setItem("sinobrosPokerApiUrl", state.api); localStorage.setItem("sinobrosPokerHandle", state.handle); if (state.matchId) localStorage.setItem("sinobrosPokerMatchId", state.matchId); if (state.playerId) localStorage.setItem("sinobrosPokerPlayerId", state.playerId); }
+      function api(path) { return state.api.replace(/\/$/, "") + path; }
+      async function request(path, options = {}) { const res = await fetch(api(path), { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); return data; }
+      function setStatus(ok, text) { els.apiStatus.className = `status-chip ${ok ? "ok" : "bad"}`; els.apiStatus.textContent = text; els.offline.hidden = ok; }
+      async function checkHealth() { try { await request("/health"); setStatus(true, "backend online"); } catch { setStatus(false, "backend offline"); } }
+      function cardColor(card) { return card && (card[1] === "h" || card[1] === "d") ? "red" : "black"; }
+      function suitGlyph(card) { return ({s:"♠",h:"♥",d:"♦",c:"♣"})[card?.[1]] || ""; }
+      function prettyCard(card) { if (!card) return "?"; return card[0].replace("T", "10") + suitGlyph(card); }
+      function cardEl(card, hidden = false) { const div = document.createElement("div"); div.className = hidden ? "playing-card back" : `playing-card ${cardColor(card)}`; div.textContent = hidden ? "◆" : prettyCard(card); return div; }
+      function renderCards(container, cards, hiddenCount = 0) { container.innerHTML = ""; if (cards?.length) cards.forEach(c => container.appendChild(cardEl(c))); else for (let i = 0; i < hiddenCount; i++) container.appendChild(cardEl(null, true)); }
+      function playerLabel(id) { return state.snapshot?.players?.find(p => p.id === id)?.handle || "—"; }
+      function render(snapshot) { state.snapshot = snapshot; const me = snapshot.players?.find(p => p.id === state.playerId) || snapshot.players?.[0]; const opp = snapshot.players?.find(p => p.id !== state.playerId) || snapshot.players?.[1]; els.youName.textContent = me ? `${me.handle}${me.id === state.playerId ? " (you)" : ""}` : "You"; els.youStack.textContent = me ? `Stack ${me.stack}` : "Stack —"; els.oppName.textContent = opp ? opp.handle : "Waiting opponent"; els.oppStack.textContent = opp ? `Stack ${opp.stack}` : "Stack —"; renderCards(els.youCards, me?.holes || [], me && !me.holes ? 2 : 0); renderCards(els.oppCards, opp?.holes || [], opp ? 2 : 0); renderCards(els.board, snapshot.hand?.community || []); els.pot.textContent = snapshot.hand?.pot ?? 0; els.stateMatch.textContent = snapshot.matchId || "—"; els.statePhase.textContent = snapshot.phase || "—"; els.stateStreet.textContent = snapshot.hand?.street || "—"; els.stateHands.textContent = snapshot.handsPlayed ?? 0; const button = snapshot.players?.find(p => p.seat === snapshot.hand?.buttonSeat); els.stateButton.textContent = button?.handle || "—"; els.stateActor.textContent = playerLabel(snapshot.hand?.actorId); els.seatYou.classList.toggle("active", snapshot.hand?.actorId === me?.id); els.seatOpp.classList.toggle("active", snapshot.hand?.actorId === opp?.id); const isMyTurn = snapshot.hand?.actorId === state.playerId && snapshot.hand?.status === "active"; els.turnTitle.textContent = snapshot.phase === "waiting" ? "Waiting for second player" : snapshot.phase === "complete" ? `Champion: ${playerLabel(snapshot.winner)}` : isMyTurn ? "Your action" : `Waiting on ${playerLabel(snapshot.hand?.actorId)}`; els.result.textContent = snapshot.hand?.result?.reason || "Server controls cards, betting, showdown, and match advancement."; els.eventLog.innerHTML = (snapshot.events || []).slice().reverse().map(e => `<li>${new Date(e.t).toLocaleTimeString()} — ${e.msg}</li>`).join(""); updateActionButtons(snapshot); }
+      function updateActionButtons(snapshot) { const legal = new Set((snapshot.legalActions || []).map(a => a.action)); els.actions.querySelectorAll("button[data-action]").forEach(btn => { const action = btn.dataset.action; btn.disabled = action === "next-hand" ? !(snapshot.phase === "playing" && snapshot.hand && snapshot.hand.status !== "active") : !legal.has(action); }); }
+      async function poll() { if (!state.matchId) return; try { const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}?playerId=${encodeURIComponent(state.playerId)}`); setStatus(true, "backend online"); render(snap); } catch (err) { setStatus(false, err.message || "backend offline"); } }
+      function startPolling() { if (state.poller) clearInterval(state.poller); state.poller = setInterval(poll, POLL_MS); poll(); }
+      async function createMatch() { state.handle = els.handle.value.trim() || "Dragon"; const data = await request("/api/matches", { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.matchId = data.matchId; state.playerId = data.playerId; els.matchId.value = state.matchId; saveBasics(); render(data.state); startPolling(); }
+      async function joinMatch() { state.handle = els.handle.value.trim() || "Dragon"; state.matchId = els.matchId.value.trim(); if (!state.matchId) throw new Error("Paste a match id first"); const data = await request(`/api/matches/${encodeURIComponent(state.matchId)}/join`, { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.playerId = data.playerId; saveBasics(); render(data.state); startPolling(); }
+      async function sendAction(action) { const body = { playerId: state.playerId, action }; if (action === "bet" || action === "raise") body.amount = parseInt(els.raise.value, 10) || 0; const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}/actions`, { method:"POST", body: JSON.stringify(body) }); render(snap); }
+      function wire() { els.apiUrl.value = state.api; els.handle.value = state.handle; els.matchId.value = state.matchId; els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Dragon"; saveBasics(); }); els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); els.actions.addEventListener("click", (e) => { const btn = e.target.closest("button[data-action]"); if (btn && !btn.disabled) sendAction(btn.dataset.action).catch(err => setStatus(false, err.message)); }); checkHealth(); if (state.matchId) startPolling(); else updateActionButtons({ legalActions: [] }); }
+      wire();
+    </script>
+  </body>
+</html>
