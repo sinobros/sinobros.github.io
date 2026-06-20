@@ -186,6 +186,26 @@
         z-index: 2;
       }
 
+      .wheel-numbers {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .wheel-number-item {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        font-size: 10px;
+        font-weight: 800;
+        color: #f4e9c8;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);
+        transform-origin: 0 0;
+        white-space: nowrap;
+        padding: 1px 3px;
+        border-radius: 2px;
+      }
       .ball {
         position: absolute;
         width: 18px;
@@ -673,6 +693,7 @@
       "use strict";
 
       const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+      const WHEEL_SEQUENCE = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
       const STARTING_BALANCE = 1000;
       const STORAGE_KEY = "sinobros-roulette-state";
       const OUTSIDE_BETS = [
@@ -776,6 +797,21 @@
         });
       }
 
+      function buildWheelNumbers() {
+        const wheelEl = els.wheel;
+        wheelEl.querySelectorAll('.wheel-number-item').forEach(el => el.remove());
+        const radius = 138;
+        const angleStep = 360 / 37;
+        WHEEL_SEQUENCE.forEach((num, i) => {
+          const el = document.createElement('div');
+          el.className = 'wheel-number-item';
+          el.textContent = num;
+          const angle = i * angleStep;
+          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(-${angle}deg)`;
+          wheelEl.appendChild(el);
+        });
+      }
+
       function makeBetButton(bet, label, colorClass) {
         const button = document.createElement("button");
         button.type = "button";
@@ -851,8 +887,9 @@
         render();
 
         const winningNumber = Math.floor(Math.random() * 37);
+        const wheelPos = WHEEL_SEQUENCE.indexOf(winningNumber);
         state.rotation += 1440 + Math.floor(Math.random() * 360);
-        const ballAngle = state.rotation + winningNumber * 9.73 + 720;
+        const ballAngle = state.rotation + wheelPos * 9.73 + 720;
         els.wheel.style.transform = `rotate(${state.rotation}deg)`;
         els.ball.style.transform = `rotate(${ballAngle}deg) translateY(-152px)`;
         await sleep(4200);
@@ -949,6 +986,7 @@
       function init() {
         loadState();
         buildGrid();
+        buildWheelNumbers();
         selectChip(state.chip);
         els.chipButtons.forEach((button) => {
           button.addEventListener("click", () => selectChip(Number(button.dataset.chip)));
