@@ -247,15 +247,17 @@
         letter-spacing: 0.5px;
       }
       .ball {
+        --ball-track-radius: 152px;
+        --ball-pocket-radius: 126px;
         position: absolute;
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: #fff8c5;
-        box-shadow: 0 0 18px #fff8c5;
-        transform: translateY(-152px);
-        z-index: 3;
-        transition: transform 4s cubic-bezier(0.15, 0.8, 0.18, 1);
+        background: radial-gradient(circle at 32% 28%, #fffef0 0 24%, #fff8c5 25% 68%, #d9c86a 100%);
+        box-shadow: 0 0 18px #fff8c5, 0 3px 10px rgba(0, 0, 0, 0.45);
+        transform: rotate(0deg) translateY(calc(var(--ball-track-radius) * -1));
+        z-index: 4;
+        will-change: transform;
       }
 
       .status-card {
@@ -602,7 +604,8 @@
           padding: 14px;
         }
         .ball {
-          transform: translateY(-110px);
+          --ball-track-radius: 110px;
+          --ball-pocket-radius: 92px;
         }
         .number-grid {
           grid-template-columns: repeat(4, minmax(42px, 1fr));
@@ -736,6 +739,10 @@
       const WHEEL_SEQUENCE = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
       const STARTING_BALANCE = 1000;
       const STORAGE_KEY = "sinobros-roulette-state";
+      const POCKET_COUNT = WHEEL_SEQUENCE.length;
+      const POCKET_ANGLE = 360 / POCKET_COUNT;
+      const WHEEL_SPIN_DURATION = 3900;
+      const BALL_SPIN_DURATION = 5200;
       const OUTSIDE_BETS = [
         { id: "red", label: "Red", className: "red-bet", payout: 1, test: (n) => RED_NUMBERS.has(n) },
         { id: "black", label: "Black", className: "black-bet", payout: 1, test: (n) => n !== 0 && !RED_NUMBERS.has(n) },
@@ -759,6 +766,7 @@
         stats: { spins: 0, wagered: 0, won: 0, net: 0 },
         spinning: false,
         rotation: 0,
+        ballAngle: 0,
       };
 
       const els = {
@@ -783,7 +791,38 @@
         wonStat: document.getElementById("won-stat"),
       };
 
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const ballTransform = (angle, radiusVar) => `rotate(${angle}deg) translateY(calc(var(${radiusVar}) * -1))`;
+
+      function nextEquivalentAngle(targetAngle, fromAngle, minTravel) {
+        const laps = Math.ceil((fromAngle + minTravel - targetAngle) / 360);
+        return targetAngle + Math.max(0, laps) * 360;
+      }
+
+      function pocketCenterAngle(wheelRotation, wheelPosition) {
+        return wheelRotation + (wheelPosition + 0.5) * POCKET_ANGLE;
+      }
+
+      function settleBallInPocket(startAngle, finalAngle) {
+        const travel = finalAngle - startAngle;
+        const keyframes = [
+          { transform: ballTransform(startAngle, "--ball-track-radius"), offset: 0 },
+          { transform: ballTransform(startAngle + travel * 0.34, "--ball-track-radius"), offset: 0.34 },
+          { transform: ballTransform(startAngle + travel * 0.62, "--ball-track-radius"), offset: 0.62 },
+          { transform: ballTransform(startAngle + travel * 0.78, "--ball-track-radius"), offset: 0.78 },
+          { transform: ballTransform(finalAngle - POCKET_ANGLE * 1.1, "--ball-track-radius"), offset: 0.86 },
+          { transform: ballTransform(finalAngle + POCKET_ANGLE * 0.42, "--ball-pocket-radius"), offset: 0.91 },
+          { transform: ballTransform(finalAngle - POCKET_ANGLE * 0.18, "--ball-track-radius"), offset: 0.95 },
+          { transform: ballTransform(finalAngle + POCKET_ANGLE * 0.08, "--ball-pocket-radius"), offset: 0.98 },
+          { transform: ballTransform(finalAngle, "--ball-pocket-radius"), offset: 1 },
+        ];
+        els.ball.getAnimations().forEach((animation) => animation.cancel());
+        const animation = els.ball.animate(keyframes, {
+          duration: BALL_SPIN_DURATION,
+          easing: "cubic-bezier(0.12, 0.72, 0.16, 1)",
+          fill: "forwards",
+        });
+        return animation.finished.catch(() => undefined);
+      }
 
       function numberColor(number) {
         if (number === 0) return "green";
@@ -852,7 +891,7 @@
       function buildWheelNumbers() {
         const wheelEl = els.wheel;
         wheelEl.querySelectorAll('.wheel-number-slot, .wheel-number-item').forEach(el => el.remove());
-        const angleStep = 360 / WHEEL_SEQUENCE.length;
+        const angleStep = POCKET_ANGLE;
         WHEEL_SEQUENCE.forEach((num, i) => {
           const slot = document.createElement('div');
           slot.className = 'wheel-number-slot';
@@ -944,11 +983,20 @@
 
         const winningNumber = Math.floor(Math.random() * 37);
         const wheelPos = WHEEL_SEQUENCE.indexOf(winningNumber);
-        state.rotation += 1440 + Math.floor(Math.random() * 360);
-        const ballAngle = state.rotation + wheelPos * 9.73 + 720;
+        const wheelTravel = 1440 + Math.floor(Math.random() * 360);
+        state.rotation += wheelTravel;
+        const finalPocketAngle = pocketCenterAngle(state.rotation, wheelPos);
+        const startBallAngle = state.ballAngle;
+        const minBallTravel = wheelTravel + 540 + Math.floor(Math.random() * 220);
+        const finalBallAngle = nextEquivalentAngle(finalPocketAngle, startBallAngle, minBallTravel);
+        state.ballAngle = finalBallAngle;
+
+        els.wheel.style.transition = `transform ${WHEEL_SPIN_DURATION}ms cubic-bezier(0.15, 0.8, 0.18, 1)`;
         els.wheel.style.transform = `rotate(${state.rotation}deg)`;
-        els.ball.style.transform = `rotate(${ballAngle}deg) translateY(-152px)`;
-        await sleep(4200);
+        els.ball.style.transform = ballTransform(startBallAngle, "--ball-track-radius");
+        await settleBallInPocket(startBallAngle, finalBallAngle);
+        els.ball.style.transform = ballTransform(finalBallAngle, "--ball-pocket-radius");
+        els.ball.getAnimations().forEach((animation) => animation.cancel());
 
         let grossWin = 0;
         const winningLines = [];
