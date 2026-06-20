@@ -193,20 +193,35 @@
         z-index: 2;
       }
 
-      .wheel-number-item {
+      .wheel-number-slot {
         position: absolute;
         top: 50%;
         left: 50%;
+        width: 0;
+        height: 0;
+        transform-origin: 0 0;
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .wheel-number-item {
+        position: absolute;
+        top: -132px;
+        left: 0;
+        width: 28px;
+        height: 18px;
+        display: grid;
+        place-items: center;
         font-size: 11px;
+        line-height: 1;
         font-weight: 800;
         color: #f4e9c8;
         text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);
         transform-origin: 50% 50%;
+        transform: translate(-50%, -50%);
         white-space: nowrap;
-        padding: 1px 4px;
         border-radius: 2px;
         letter-spacing: 0.5px;
-        z-index: 3;
       }
       .ball {
         position: absolute;
@@ -801,20 +816,20 @@
 
       function buildWheelNumbers() {
         const wheelEl = els.wheel;
-        wheelEl.querySelectorAll('.wheel-number-item').forEach(el => el.remove());
-        const radius = 148;
-        const angleStep = 360 / 37;
-        // Start at -90deg so the first sector (green 0) aligns with the top of the visual wheel
-        // and numbers are radially oriented (pointing outward along each pocket)
-        const startOffset = -90;
+        wheelEl.querySelectorAll('.wheel-number-slot, .wheel-number-item').forEach(el => el.remove());
+        const angleStep = 360 / WHEEL_SEQUENCE.length;
         WHEEL_SEQUENCE.forEach((num, i) => {
+          const slot = document.createElement('div');
+          slot.className = 'wheel-number-slot';
           const el = document.createElement('div');
           el.className = 'wheel-number-item';
           el.textContent = num;
-          const angle = startOffset + (i + 0.5) * angleStep;
-          // Radial orientation: number follows the direction of its pocket
-          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px)`;
-          wheelEl.appendChild(el);
+          const angle = (i + 0.5) * angleStep;
+          // Match the conic-gradient sector centers: 0deg is the top of the wheel.
+          // The parent rotates each label with its pocket; the child is centered on that radial line.
+          slot.style.transform = `rotate(${angle}deg)`;
+          slot.appendChild(el);
+          wheelEl.appendChild(slot);
         });
       }
 
