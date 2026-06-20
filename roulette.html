@@ -804,13 +804,16 @@
         wheelEl.querySelectorAll('.wheel-number-item').forEach(el => el.remove());
         const radius = 148;
         const angleStep = 360 / 37;
+        // Start at -90deg so the first sector (green 0) aligns with the top of the visual wheel
+        // and numbers are radially oriented (pointing outward along each pocket)
+        const startOffset = -90;
         WHEEL_SEQUENCE.forEach((num, i) => {
           const el = document.createElement('div');
           el.className = 'wheel-number-item';
           el.textContent = num;
-          const angle = (i + 0.5) * angleStep;
-          // Radial placement, text at 0 degrees (upright/horizontal, never upside-down)
-          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(-${angle}deg)`;
+          const angle = startOffset + (i + 0.5) * angleStep;
+          // Radial orientation: number follows the direction of its pocket
+          el.style.transform = `rotate(${angle}deg) translateY(-${radius}px)`;
           wheelEl.appendChild(el);
         });
       }
