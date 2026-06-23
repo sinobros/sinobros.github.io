@@ -80,7 +80,7 @@
       </section>
 
       <section class="lobby-panel">
-        <label>Match ID <input id="match-id" placeholder="create or paste a match id" /></label>
+        <label>Match Code <input id="match-id" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="create or enter 4 digits" /></label>
         <button id="create-match" class="mini-btn" type="button">Create Match</button>
         <button id="join-match" class="mini-btn secondary" type="button">Join Match</button>
       </section>
@@ -126,7 +126,7 @@
         <aside>
           <div class="state-panel">
             <h3>Tournament State</h3>
-            <div class="kv"><span>Match</span><strong id="state-match">—</strong></div>
+            <div class="kv"><span>Code</span><strong id="state-match">—</strong></div>
             <div class="kv"><span>Phase</span><strong id="state-phase">—</strong></div>
             <div class="kv"><span>Street</span><strong id="state-street">—</strong></div>
             <div class="kv"><span>Button</span><strong id="state-button">—</strong></div>
@@ -157,6 +157,8 @@
 
       function saveBasics() { localStorage.setItem("sinobrosPokerApiUrl", state.api); localStorage.setItem("sinobrosPokerHandle", state.handle); if (state.matchId) localStorage.setItem("sinobrosPokerMatchId", state.matchId); if (state.playerId) localStorage.setItem("sinobrosPokerPlayerId", state.playerId); }
       function api(path) { return state.api.replace(/\/$/, "") + path; }
+      function normalizeMatchCode(value) { return String(value || "").replace(/\D/g, "").slice(0, 4); }
+      function isMatchCode(value) { return /^\d{4}$/.test(value); }
       async function request(path, options = {}) { const res = await fetch(api(path), { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); return data; }
       function setStatus(ok, text) { els.apiStatus.className = `status-chip ${ok ? "ok" : "bad"}`; els.apiStatus.textContent = text; els.offline.hidden = ok; }
       async function checkHealth() { try { await request("/health"); setStatus(true, "backend online"); } catch { setStatus(false, "backend offline"); } }
@@ -171,9 +173,9 @@
       async function poll() { if (!state.matchId) return; try { const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}?playerId=${encodeURIComponent(state.playerId)}`); setStatus(true, "backend online"); render(snap); } catch (err) { setStatus(false, err.message || "backend offline"); } }
       function startPolling() { if (state.poller) clearInterval(state.poller); state.poller = setInterval(poll, POLL_MS); poll(); }
       async function createMatch() { state.handle = els.handle.value.trim() || "Dragon"; const data = await request("/api/matches", { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.matchId = data.matchId; state.playerId = data.playerId; els.matchId.value = state.matchId; saveBasics(); render(data.state); startPolling(); }
-      async function joinMatch() { state.handle = els.handle.value.trim() || "Dragon"; state.matchId = els.matchId.value.trim(); if (!state.matchId) throw new Error("Paste a match id first"); const data = await request(`/api/matches/${encodeURIComponent(state.matchId)}/join`, { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.playerId = data.playerId; saveBasics(); render(data.state); startPolling(); }
+      async function joinMatch() { state.handle = els.handle.value.trim() || "Dragon"; state.matchId = normalizeMatchCode(els.matchId.value); els.matchId.value = state.matchId; if (state.matchId.length !== 4) throw new Error("Enter a 4-digit match code first"); const data = await request(`/api/matches/${encodeURIComponent(state.matchId)}/join`, { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.playerId = data.playerId; saveBasics(); render(data.state); startPolling(); }
       async function sendAction(action) { const body = { playerId: state.playerId, action }; if (action === "bet" || action === "raise") body.amount = parseInt(els.raise.value, 10) || 0; const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}/actions`, { method:"POST", body: JSON.stringify(body) }); render(snap); }
-      function wire() { els.apiUrl.value = state.api; els.handle.value = state.handle; els.matchId.value = state.matchId; els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Dragon"; saveBasics(); }); els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); els.actions.addEventListener("click", (e) => { const btn = e.target.closest("button[data-action]"); if (btn && !btn.disabled) sendAction(btn.dataset.action).catch(err => setStatus(false, err.message)); }); checkHealth(); if (state.matchId) startPolling(); else updateActionButtons({ legalActions: [] }); }
+      function wire() { els.apiUrl.value = state.api; els.handle.value = state.handle; state.matchId = isMatchCode(state.matchId) ? state.matchId : ""; els.matchId.value = state.matchId; els.matchId.addEventListener("input", () => { els.matchId.value = normalizeMatchCode(els.matchId.value); }); els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Dragon"; saveBasics(); }); els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); els.actions.addEventListener("click", (e) => { const btn = e.target.closest("button[data-action]"); if (btn && !btn.disabled) sendAction(btn.dataset.action).catch(err => setStatus(false, err.message)); }); checkHealth(); if (state.matchId) startPolling(); else updateActionButtons({ legalActions: [] }); }
       wire();
     </script>
   </body>
