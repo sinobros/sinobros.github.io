@@ -1489,6 +1489,7 @@
       const leaderboardBodyEl = document.getElementById("leaderboard-body");
       const yourRankEl = document.getElementById("your-rank");
       const playerNameEl = document.getElementById("player-name");
+      const BACKEND_API = "https://golfmat.ch:3000";
 
       function renderLeaderboard(topTen, myRank, submittedName) {
         leaderboardEl.hidden = false;
@@ -1515,7 +1516,7 @@
         leaderboardBodyEl.innerHTML = '<span class="leaderboard-loading">Submitting…</span>';
         yourRankEl.textContent = "";
 
-        const API = "https://golfmat.ch:3000/highscore";
+        const API = `${BACKEND_API}/highscore`;
         const body = new URLSearchParams({ name, score: state.balance }).toString();
 
         // POST the score. The server records it even if CORS blocks the response.

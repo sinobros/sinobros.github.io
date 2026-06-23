@@ -85,7 +85,7 @@
         <button id="join-match" class="mini-btn secondary" type="button">Join Match</button>
       </section>
 
-      <div id="offline-note" class="banner-note" hidden>Backend unavailable. Start the Node API locally with <strong>cd backend && npm start</strong>, then set the API URL to <strong>http://localhost:8787</strong>. The deployed static frontend can point to any separate poker API domain.</div>
+      <div id="offline-note" class="banner-note" hidden>Backend unavailable. Start the Node API locally with <strong>cd ../backendfor3000 && npm start</strong>, then set the API URL to <strong>https://localhost:3000</strong>. The deployed static frontend uses <strong>https://golfmat.ch:3000</strong>.</div>
 
       <section class="poker-grid">
         <div class="table-shell">
@@ -149,7 +149,7 @@
 
     <script>
       "use strict";
-      const DEFAULT_API = "https://poker-api.sinobros.org";
+      const DEFAULT_API = "https://golfmat.ch:3000";
       const POLL_MS = 1500;
       const state = { api: localStorage.getItem("sinobrosPokerApiUrl") || DEFAULT_API, handle: localStorage.getItem("sinobrosPokerHandle") || "Dragon", matchId: localStorage.getItem("sinobrosPokerMatchId") || "", playerId: localStorage.getItem("sinobrosPokerPlayerId") || "", snapshot: null, poller: null };
       const $ = (id) => document.getElementById(id);
