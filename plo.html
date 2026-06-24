@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
+    <!-- Plausible Analytics: Privacy-friendly data tracking for viewers (page views, engagement). Sign up at plausible.io to view dashboard. -->
+    <script defer data-domain="sinobros.org" src="https://plausible.io/js/script.js"></script>
     <title>Heads-Up PLO — Sinobros Beach</title>
     <style>
       :root {
@@ -65,6 +67,52 @@
       .winner-glow { animation: winnerPulse 1.2s ease-in-out 3; }
       @keyframes winnerPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(251,146,60,0.4); } 50% { box-shadow: 0 0 0 20px rgba(251,146,60,0); } }
       .sound-toggle { position: fixed; bottom: 20px; right: 20px; background: #166534; color: white; border: none; padding: 10px 16px; border-radius: 999px; font-size: 13px; cursor: pointer; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
+      .casino-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background: #0a0a0a;
+        overflow: hidden;
+      }
+      .casino-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: 
+          radial-gradient(circle at 20% 30%, rgba(255,230,0,0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(229,30,71,0.04) 0%, transparent 60%);
+      }
+      .distant-table {
+        position: absolute;
+        width: 180px;
+        height: 110px;
+        background: #111;
+        border: 8px solid #222;
+        border-radius: 60px;
+        opacity: 0.18;
+        filter: blur(2px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      }
+      .distant-slot {
+        position: absolute;
+        width: 92px;
+        height: 140px;
+        background: #0a0a0a;
+        border: 4px solid #222;
+        border-radius: 8px;
+        opacity: 0.15;
+        filter: blur(3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      }
+      .distant-reel {
+        position: absolute;
+        width: 22px;
+        height: 90px;
+        background: #1a1a1a;
+        top: 22px;
+        border: 1px solid #333;
+      }
       .restart-btn { background: #fb923c; color: #111; border: 3px solid #c2410c; padding: 10px 20px; font-weight: 700; border-radius: 6px; margin-left: 12px; }
     </style>
   </head>
@@ -99,7 +147,21 @@
 
       <div class="plo-table">
         <div class="table-felt"></div>
-        <div class="players">
+        
+      <!-- Female Dealer -->
+      <div id="dealer" style="position: absolute; top: 40px; right: 60px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+        <div style="width: 92px; height: 92px; background: linear-gradient(145deg, #f8d7da, #f4a5b0); border: 5px solid #166534; border-radius: 50%; box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; font-size: 48px; position: relative;">
+          👩‍💼
+          <div style="position: absolute; bottom: -4px; right: -4px; width: 28px; height: 28px; background: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid #fefce8;">🃏</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.95); border: 2px solid #166534; padding: 2px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #166534; letter-spacing: 0.5px;">SOPHIA</div>
+        
+        <div id="dealer-speech" style="position: absolute; top: 105px; right: 10px; background: rgba(255,255,255,0.98); border: 2px solid #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #166534; max-width: 140px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; white-space: nowrap;">
+          <span id="speech-text"></span>
+        </div>
+      </div>
+
+      <div class="players">
           <div class="player villain">
             <div class="player-info" style="text-align:right;">
               <div class="player-name">AI Dragon • Villain</div>
@@ -256,7 +318,7 @@
         updateStacks(true); updatePot(true); updateBlinds();
         renderHero(true); renderVillain(false,true); document.getElementById('community-cards').innerHTML = '';
         playSound('deal'); playSound('blinds');
-        log(`Hand #${handNumber} dealt. Blinds posted.`, true);
+        log(`Hand #${handNumber} dealt. Blinds posted.`, true); dealerSay('Good luck, players!', 1600);
         hideDeal(); updateStreet('preflop'); showActions();
         setTimeout(()=>{ if(gameActive) log('Your action...'); }, 380);
       }
@@ -292,9 +354,9 @@
 
       function progressStreet() {
         if (heroBetThisStreet === villainBetThisStreet) {
-          if (currentStreet === 'preflop') { communityCards.push(deal(),deal(),deal()); renderBoard(true); playSound('deal'); updateStreet('flop'); log('Flop dealt.'); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
+          if (currentStreet === 'preflop') { communityCards.push(deal(),deal(),deal()); renderBoard(true); playSound('deal'); updateStreet('flop'); log('Flop dealt.'); dealerSay('Here comes the flop...', 1400); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
           else if (currentStreet === 'flop') { communityCards.push(deal()); renderBoard(true); playSound('deal'); updateStreet('turn'); log('Turn dealt.'); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
-          else if (currentStreet === 'turn') { communityCards.push(deal()); renderBoard(true); playSound('deal'); updateStreet('river'); log('River dealt!'); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
+          else if (currentStreet === 'turn') { communityCards.push(deal()); renderBoard(true); playSound('deal'); updateStreet('river'); log('River dealt!'); dealerSay('Final card...', 1400); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
           else if (currentStreet === 'river') { endHand(null); }
         } else {
           if (heroBetThisStreet < villainBetThisStreet) { log('Your action...'); showActions(); } else { setTimeout(aiAction, 600); }
@@ -308,8 +370,8 @@
         let heroWins = heroWinOverride !== null ? heroWinOverride : (heroScore >= villainScore);
 
         const prize = pot;
-        if (heroWins) { heroStack += prize; log(`Showdown! You win ${prize} DG!`, true); playSound('win'); document.getElementById('pot-display').classList.add('winner-glow'); setTimeout(()=>document.getElementById('pot-display').classList.remove('winner-glow'), 3600); }
-        else { villainStack += prize; log(`Villain wins the pot of ${prize}.`); playSound('win'); }
+        if (heroWins) { heroStack += prize; log(`Showdown! You win ${prize} DG!`, true); dealerSay('Congratulations!', 2000); playSound('win'); document.getElementById('pot-display').classList.add('winner-glow'); setTimeout(()=>document.getElementById('pot-display').classList.remove('winner-glow'), 3600); }
+        else { villainStack += prize; log(`Villain wins the pot of ${prize}.`); dealerSay('Better luck next hand', 1800); playSound('win'); }
         log(`Hero score: ${heroScore} • Villain: ${villainScore}`);
         updateStacks(true); updatePot(false);
 
@@ -328,6 +390,25 @@
       }
 
       document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('deal-btn').style.display !== 'none') dealHand(); });
+
+
+      function dealerSay(text, duration = 1800) {
+        const bubble = document.getElementById('dealer-speech');
+        const txt = document.getElementById('speech-text');
+        if (!bubble || !txt) return;
+        
+        txt.textContent = text;
+        bubble.style.display = 'block';
+        bubble.style.animation = 'none';
+        bubble.offsetHeight; // reflow
+        bubble.style.animation = 'dealerPop 0.2s ease forwards';
+        
+        setTimeout(() => {
+          if (bubble) bubble.style.display = 'none';
+        }, duration);
+      }
+
+      // Add animation for speech bubble
 
       function init() {
         createDeck(); updateStacks(); updateBlinds(); updatePot(false);
