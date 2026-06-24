@@ -373,3 +373,78 @@ button:disabled {
     font-size: 28px;
   }
 }
+
+
+/* ========== Hamburger Menu (Mobile) ========== */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px 8px;
+  margin-left: auto;
+  z-index: 100;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 26px;
+  height: 2px;
+  background: var(--yellow);
+  margin: 5px 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 2px;
+}
+
+@media (max-width: 900px) {
+  .nav-toggle {
+    display: block;
+    order: 2;
+  }
+
+  .site-header {
+    position: relative;
+  }
+
+  .nav {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #0a0a0a;
+    border-top: 1px solid rgba(255, 230, 0, 0.15);
+    padding: 20px 24px 28px;
+    gap: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    z-index: 99;
+    margin-left: 0;
+  }
+
+  .nav.open {
+    display: flex;
+  }
+
+  .nav-link {
+    font-size: 17px;
+    padding: 10px 0;
+    display: block;
+  }
+
+  .login-btn {
+    order: 3;
+    margin-left: 12px;
+  }
+
+  /* Hamburger to X animation */
+  .nav-toggle.open span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+  .nav-toggle.open span:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-toggle.open span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+}
