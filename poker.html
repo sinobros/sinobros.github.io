@@ -193,5 +193,6 @@
       function wire() { els.apiUrl.value = state.api; els.handle.value = state.handle; state.matchId = isMatchCode(state.matchId) ? state.matchId : ""; els.matchId.value = state.matchId; els.matchId.addEventListener("input", () => { els.matchId.value = normalizeMatchCode(els.matchId.value); }); els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Dragon"; saveBasics(); }); els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); els.actions.addEventListener("click", (e) => { const btn = e.target.closest("button[data-action]"); if (btn && !btn.disabled) sendAction(btn.dataset.action).catch(err => setStatus(false, err.message)); }); checkHealth(); if (state.matchId) startPolling(); else updateActionButtons({ legalActions: [] }); }
       wire();
     </script>
+    <script src="app.js"></script>
   </body>
 </html>

@@ -35,7 +35,9 @@ const handleSubmit = async (event) => {
   }
 };
 
-form.addEventListener("submit", handleSubmit);
+if (form) {
+  form.addEventListener("submit", handleSubmit);
+}
 
 const newFormData = (inputs) => {
   const formData = new FormData();
