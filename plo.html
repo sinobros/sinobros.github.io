@@ -46,12 +46,9 @@
       .player-stack { font-size: 15px; color: #166534; }
       .player-stack .amount { color: #166534; font-weight: 800; }
       .cards { display: flex; gap: 12px; }
-      .card { width: var(--card-w); height: var(--card-h); background: #fff; border-radius: 8px; border: 3px solid #166534; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,0.25), 0 0 0 1px #d4c9a8 inset; display: flex; flex-direction: column; justify-content: space-between; padding: 8px 10px; font-family: "Poppins", sans-serif; font-weight: 800; user-select: none; transition: transform 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s ease; animation: dealCard 0.4s ease-out backwards; }
-      .card:hover { transform: translateY(-8px) rotate(1deg); box-shadow: 0 16px 32px rgba(0,0,0,0.3); }
-      .card .rank { font-size: 22px; line-height: 1; color: #111; }
-      .card .suit { font-size: 26px; line-height: 1; align-self: flex-end; }
-      .card.back { background: linear-gradient(135deg, #166534, #052e16); border: 3px solid #052e16; display: flex; align-items: center; justify-content: center; color: #fefce8; font-size: 32px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-      .card.back::after { content: "🌊"; font-size: 42px; opacity: 0.9; }
+      .card { width: var(--card-w); height: var(--card-h); background: transparent; border: none; padding: 0; box-shadow: none; transition: transform 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s ease; animation: dealCard 0.4s ease-out backwards; }
+      .card:hover { transform: translateY(-8px) rotate(1deg); }
+      .card svg { width: 100%; height: 100%; display: block; }
       .four-color-hearts { color: #e51e47; } .four-color-diamonds { color: #3b82f6; } .four-color-clubs { color: #22c55e; } .four-color-spades { color: #a855f7; }
       @keyframes dealCard { from { opacity: 0; transform: translateY(-60px) rotate(-12deg) scale(0.6); } to { opacity: 1; transform: translateY(0) rotate(0) scale(1); } }
       .community { display: flex; justify-content: center; gap: 16px; margin: 40px 0; position: relative; z-index: 1; }
@@ -286,12 +283,6 @@
 
       // PLO card rendering (4-color)
       const SUITS = { h:{symbol:'♥',cssClass:'four-color-hearts'}, d:{symbol:'♦',cssClass:'four-color-diamonds'}, c:{symbol:'♣',cssClass:'four-color-clubs'}, s:{symbol:'♠',cssClass:'four-color-spades'} };
-      function renderCard(card, faceUp=true) {
-        if (!card) return `<div class="card back"></div>`;
-        if (!faceUp) return `<div class="card back" data-id="${card}"></div>`;
-        const rank = card[0].replace('T','10');
-        const suit = card[1];
-        const s = SUITS[suit] || {symbol:'?',cssClass:''};
         return `<div class="card"><div class="rank">${rank}</div><div class="suit ${s.cssClass}">${s.symbol}</div></div>`;
       }
       function renderCards(container, cards, hiddenCount=0) {
@@ -465,6 +456,7 @@
         els.currentStreet.textContent = 'Preflop';
       }
     </script>
+    <script src="assets/cards.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
