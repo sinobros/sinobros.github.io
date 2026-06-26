@@ -9,7 +9,7 @@ function createCardSVG(rank, suit, faceUp = true) {
     h: '#e51e47', // hearts - red
     d: '#3b82f6', // diamonds - blue
     c: '#22c55e', // clubs - green
-    s: '#a855f7'  // spades - purple
+    s: '#111111'  // spades - purple
   };
   
   const suitSymbols = {
