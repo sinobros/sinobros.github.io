@@ -73,9 +73,19 @@
       .blinds { background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 999px; border: 2px solid #166534; color: #166534; }
       .four-color-note { font-size: 12px; opacity: 0.7; text-align: center; margin-top: 8px; color: #166534; }
       .winner-glow { animation: winnerPulse 1.2s ease-in-out 3; }
-      @keyframes winnerPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(251,146,60,0.4); } 50% { box-shadow: 0 0 0 20px rgba(251,146,60,0); } }
+      @keyframes winnerPulse { 0%,100%: { box-shadow: 0 0 0 0 rgba(251,146,60,0.4); } 50% { box-shadow: 0 0 0 20px rgba(251,146,60,0); } }
       .sound-toggle { position: fixed; bottom: 20px; right: 20px; background: #166534; color: white; border: none; padding: 10px 16px; border-radius: 999px; font-size: 13px; cursor: pointer; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-
+      .api-panel, .lobby-panel { background: rgba(255,255,255,0.95); border: 2px solid #166534; padding: 16px 20px; margin-bottom: 20px; border-radius: 12px; }
+      .api-panel { display: grid; grid-template-columns: 1.8fr 1fr auto; gap: 16px; align-items: end; }
+      .lobby-panel { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: end; }
+      .api-panel label, .lobby-panel label { display: flex; flex-direction: column; gap: 6px; color: #166534; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      .api-panel input, .lobby-panel input { border: 2px solid #166534; background: #fff; color: #166534; padding: 12px 14px; font-size: 15px; border-radius: 6px; }
+      .status-chip { border: 2px solid #166534; color: #166534; padding: 10px 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; border-radius: 6px; }
+      .status-chip.ok { border-color: #22c55e; background: rgba(34,197,94,0.1); }
+      .status-chip.bad { border-color: #e51e47; background: rgba(229,30,71,0.1); }
+      .mini-btn { background: #166534; color: #fefce8; border: 2px solid #052e16; padding: 12px 20px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+      .mini-btn.secondary { background: transparent; border-color: #166534; color: #166534; }
+      .banner-note { color: #166534; border: 2px solid #166534; padding: 14px 18px; background: rgba(255,255,255,0.9); margin-bottom: 16px; border-radius: 8px; }
       .casino-bg {
         position: fixed;
         inset: 0;
@@ -148,75 +158,77 @@
       <div class="table-header">
         <div>
           <h1 class="table-title">heads-up pot limit omaha</h1>
-          <p style="color:#166534; font-size:14px; margin-top:4px;">🌴 Dragon's Beach • Four-Color Deck • Tournament Mode</p>
+          <p style="color:#166534;opacity:.75;margin-top:8px;max-width:520px;">Server-authoritative heads-up PLO. Two real players, match codes, no bots. Same backend as Hold'em.</p>
         </div>
         <div class="header-stack">
-          <div class="info-box"><div class="balance-label">hand</div><div class="balance-amount" id="hand-number">1</div></div>
-          <div class="balance-box">
-            <div><div class="balance-label">your stack</div><div class="balance-amount" id="hero-stack">10,000</div></div>
-            <div><div class="balance-label">villain stack</div><div class="balance-amount" id="villain-stack">10,000</div></div>
-          </div>
-          <div class="info-box"><div class="balance-label">blinds</div><div class="balance-amount" id="blinds">50 / 100</div></div>
-          <button class="action-btn restart-btn" onclick="restartTournament()">RESTART TOURNAMENT</button>
+          <div class="info-box">Blinds <span id="blinds">50/100</span></div>
+          <div class="info-box">Hand <span id="hand-number">1</span></div>
+          <button onclick="restartTournament()" class="restart-btn">RESTART</button>
         </div>
       </div>
 
+      <!-- API + Lobby (mirrors poker.html) -->
+      <section class="api-panel">
+        <label>Backend API URL <input id="api-url" spellcheck="false" /></label>
+        <label>Player handle <input id="handle" maxlength="24" placeholder="Sunset" /></label>
+        <span id="api-status" class="status-chip">checking backend…</span>
+      </section>
+
+      <section class="lobby-panel">
+        <label>Match Code <input id="match-id" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="create or enter 4 digits" /></label>
+        <button id="create-match" class="mini-btn" type="button">Create Match</button>
+        <button id="join-match" class="mini-btn secondary" type="button">Join Match</button>
+      </section>
+
+      <div id="offline-note" class="banner-note" hidden>Backend unavailable. Start the Node API locally with <strong>cd ../backendfor3000 && npm start</strong>, then set the API URL to <strong>https://localhost:3000</strong>. The deployed static frontend uses <strong>https://golfmat.ch:3000</strong>.</div>
+
+      <!-- PLO Table -->
       <div class="plo-table">
         <div class="table-felt"></div>
-        
-      <!-- Female Dealer -->
-      <div id="dealer" style="position: absolute; top: 40px; right: 60px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-        <div style="width: 92px; height: 92px; background: linear-gradient(145deg, #f8d7da, #f4a5b0); border: 5px solid #166534; border-radius: 50%; box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; font-size: 48px; position: relative;">
-          👩‍💼
-          <div style="position: absolute; bottom: -4px; right: -4px; width: 28px; height: 28px; background: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid #fefce8;">🃏</div>
-        </div>
-        <div style="background: rgba(255,255,255,0.95); border: 2px solid #166534; padding: 2px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #166534; letter-spacing: 0.5px;">SOPHIA</div>
-        
-        <div id="dealer-speech" style="position: absolute; top: 105px; right: 10px; background: rgba(255,255,255,0.98); border: 2px solid #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #166534; max-width: 140px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; white-space: nowrap;">
-          <span id="speech-text"></span>
-        </div>
-      </div>
 
-      <div class="players">
+        <div class="players">
+          <!-- Villain / Opponent -->
           <div class="player villain">
-            <div class="player-info" style="text-align:right;">
-              <div class="player-name">AI Dragon • Villain</div>
-              <div class="player-stack"><span class="amount" id="villain-stack-display">10,000</span> DG</div>
+            <div class="player-info">
+              <div class="player-name" id="villain-name">Waiting opponent</div>
+              <div class="player-stack"><span class="amount" id="villain-stack">—</span> DG</div>
             </div>
             <div class="cards" id="villain-cards"></div>
           </div>
 
-          <div style="position:relative; z-index:1;">
-            <div class="community-label">community cards (use exactly 3)</div>
-            <div class="community" id="community-cards"></div>
-            <div class="pot-display" id="pot-display">
-              <div class="pot-label">pot</div>
-              <div class="pot-amount" id="pot-amount">0</div>
-            </div>
+          <!-- Pot in center -->
+          <div class="pot-display" id="pot-display">
+            <div class="pot-label">POT</div>
+            <div class="pot-amount" id="pot-amount">0</div>
           </div>
 
-          <div class="player hero">
+          <!-- Hero / You -->
+          <div class="player">
             <div class="cards" id="hero-cards"></div>
             <div class="player-info">
-              <div class="player-name">You • Hero</div>
-              <div class="player-stack"><span class="amount" id="hero-stack-display">10,000</span> DG</div>
+              <div class="player-name" id="hero-name">You • Hero</div>
+              <div class="player-stack"><span class="amount" id="hero-stack">10,000</span> DG</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="status-bar">
-        <div><span class="blinds">Street: <span id="current-street">Preflop</span></span></div>
-        <div class="four-color-note">Four-Color Deck: ♥ Red • ♦ Blue • ♣ Green • ♠ Purple</div>
-      </div>
+        <div class="community">
+          <div class="community-label">Community Cards</div>
+          <div id="community-cards" class="community"></div>
+        </div>
 
-      <div class="actions" id="action-area">
-        <button class="action-btn" id="deal-btn" onclick="dealHand()">DEAL NEW HAND</button>
-        <button class="action-btn" id="fold-btn" onclick="playerAction('fold')" style="display:none;">FOLD</button>
-        <button class="action-btn" id="call-btn" onclick="playerAction('call')" style="display:none;">CALL / CHECK</button>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <input type="number" id="raise-amount" class="raise-input" value="200" min="100" style="display:none;">
-          <button class="action-btn" id="raise-btn" onclick="playerAction('raise')" style="display:none;">RAISE (POT LIMIT)</button>
+        <div class="status-bar">
+          <div><span class="blinds">Street: <span id="current-street">Preflop</span></span></div>
+          <div class="four-color-note">Four-Color Deck: ♥ Red • ♦ Blue • ♣ Green • ♠ Purple</div>
+        </div>
+
+        <div class="actions" id="action-area">
+          <button class="action-btn" id="fold-btn" onclick="playerAction('fold')" style="display:none;">FOLD</button>
+          <button class="action-btn" id="call-btn" onclick="playerAction('call')" style="display:none;">CALL / CHECK</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="number" id="raise-amount" class="raise-input" value="200" min="100" style="display:none;">
+            <button class="action-btn" id="raise-btn" onclick="playerAction('raise')" style="display:none;">RAISE (POT LIMIT)</button>
+          </div>
         </div>
       </div>
 
@@ -226,213 +238,232 @@
     <button class="sound-toggle" onclick="toggleSound()">🔊 Sound: ON</button>
 
     <script>
-      // ==================== COMPLETE GAME ====================
-      let audioContext, soundEnabled = true;
-      function initAudio() { if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
-      function playSound(type) {
-        if (!soundEnabled || !audioContext) return; initAudio();
-        const osc = audioContext.createOscillator(); const gain = audioContext.createGain(); const filter = audioContext.createBiquadFilter();
-        switch(type) {
-          case 'deal': osc.type='sawtooth'; osc.frequency.value=180; gain.gain.value=0.25; filter.type='lowpass'; filter.frequency.value=800; osc.frequency.linearRampToValueAtTime(420, audioContext.currentTime+0.35); gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime+0.45); break;
-          case 'raise': osc.type='square'; osc.frequency.value=680; gain.gain.value=0.35; filter.type='highpass'; filter.frequency.value=400; gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime+0.22); break;
-          case 'call': osc.type='sine'; osc.frequency.value=520; gain.gain.value=0.3; gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime+0.18); break;
-          case 'fold': osc.type='sawtooth'; osc.frequency.value=320; gain.gain.value=0.22; osc.frequency.linearRampToValueAtTime(120, audioContext.currentTime+0.4); gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime+0.45); break;
-          case 'win': osc.type='sine'; osc.frequency.value=660; gain.gain.value=0.4; setTimeout(()=>playTone(780,0.25,0.3),120); setTimeout(()=>playTone(920,0.3,0.35),240); gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime+0.6); break;
-          case 'blinds': osc.type='sine'; osc.frequency.value=440; gain.gain.value=0.2; gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime+0.3); break;
-          default: osc.type='sine'; osc.frequency.value=440; gain.gain.value=0.2;
-        }
-        osc.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); osc.start();
-        setTimeout(()=>{ try{osc.stop();}catch(e){} }, 900);
-      }
-      function playTone(freq, dur, vol=0.3){ if(!soundEnabled||!audioContext)return; const o=audioContext.createOscillator(); const g=audioContext.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.value=vol; g.gain.linearRampToValueAtTime(0.001,audioContext.currentTime+dur); o.connect(g); g.connect(audioContext.destination); o.start(); setTimeout(()=>{try{o.stop();}catch(e){}},dur*1000+60); }
-      function toggleSound(){ soundEnabled=!soundEnabled; document.querySelector('.sound-toggle').textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF'; }
+      "use strict";
+      const DEFAULT_API = "https://golfmat.ch:3000";
+      const POLL_MS = 1500;
+      const state = { 
+        api: localStorage.getItem("sinobrosPloApiUrl") || DEFAULT_API, 
+        handle: localStorage.getItem("sinobrosPloHandle") || "Sunset", 
+        matchId: localStorage.getItem("sinobrosPloMatchId") || "", 
+        playerId: localStorage.getItem("sinobrosPloPlayerId") || "", 
+        snapshot: null, 
+        poller: null 
+      };
+      const $ = (id) => document.getElementById(id);
+      const els = { 
+        apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), 
+        matchId: $("match-id"), create: $("create-match"), join: $("join-match"), 
+        offline: $("offline-note"),
+        heroName: $("hero-name"), heroStack: $("hero-stack"), heroCards: $("hero-cards"),
+        villainName: $("villain-name"), villainStack: $("villain-stack"), villainCards: $("villain-cards"),
+        communityCards: $("community-cards"), potAmount: $("pot-amount"),
+        currentStreet: $("current-street"), gameLog: $("game-log"),
+        foldBtn: $("fold-btn"), callBtn: $("call-btn"), raiseInput: $("raise-amount"), raiseBtn: $("raise-btn"),
+        blinds: $("blinds"), handNumber: $("hand-number")
+      };
 
+      function saveBasics() { 
+        localStorage.setItem("sinobrosPloApiUrl", state.api); 
+        localStorage.setItem("sinobrosPloHandle", state.handle); 
+        if (state.matchId) localStorage.setItem("sinobrosPloMatchId", state.matchId); 
+        if (state.playerId) localStorage.setItem("sinobrosPloPlayerId", state.playerId); 
+      }
+      function api(path) { return state.api.replace(/\/$/, "") + path; }
+      function normalizeMatchCode(value) { return String(value || "").replace(/\D/g, "").slice(0, 4); }
+      function isMatchCode(value) { return /^\d{4}$/.test(value); }
+      async function request(path, options = {}) { 
+        const res = await fetch(api(path), { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); 
+        const data = await res.json().catch(() => ({})); 
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); 
+        return data; 
+      }
+      function setStatus(ok, text) { 
+        els.apiStatus.className = `status-chip ${ok ? "ok" : "bad"}`; 
+        els.apiStatus.textContent = text; 
+        els.offline.hidden = ok; 
+      }
+      async function checkHealth() { try { await request("/health"); setStatus(true, "backend online"); } catch { setStatus(false, "backend offline"); } }
+
+      // PLO card rendering (4-color)
       const SUITS = { h:{symbol:'♥',cssClass:'four-color-hearts'}, d:{symbol:'♦',cssClass:'four-color-diamonds'}, c:{symbol:'♣',cssClass:'four-color-clubs'}, s:{symbol:'♠',cssClass:'four-color-spades'} };
-      const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-      const RANK_VAL = {'A':14,'K':13,'Q':12,'J':11,'T':10,'9':9,'8':8,'7':7,'6':6,'5':5,'4':4,'3':3,'2':2};
-
-      let deck=[], heroCards=[], villainCards=[], communityCards=[], pot=0, heroStack=10000, villainStack=10000;
-      let currentBet=0, heroBetThisStreet=0, villainBetThisStreet=0, handNumber=1, blinds={small:50,big:100}, currentStreet='preflop', gameActive=false;
-
-      function createDeck(){ deck=[]; Object.keys(SUITS).forEach(s=>RANKS.forEach(r=>deck.push({rank:r,suit:s,id:r+s}))); }
-      function shuffle(){ for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];} }
-      function deal(){ return deck.pop(); }
-
-      function renderCard(card, faceUp=true, animate=false){
-        if(!faceUp) return `<div class="card back" data-id="${card.id}"></div>`;
-        const s = SUITS[card.suit]; const anim = animate ? ' style="animation:dealCard 0.45s ease-out backwards;"' : '';
-        return `<div class="card" data-id="${card.id}"${anim}><div class="rank" style="color:#111;">${card.rank}</div><div class="suit ${s.cssClass}">${s.symbol}</div></div>`;
+      function renderCard(card, faceUp=true) {
+        if (!card) return `<div class="card back"></div>`;
+        if (!faceUp) return `<div class="card back" data-id="${card}"></div>`;
+        const rank = card[0].replace('T','10');
+        const suit = card[1];
+        const s = SUITS[suit] || {symbol:'?',cssClass:''};
+        return `<div class="card"><div class="rank">${rank}</div><div class="suit ${s.cssClass}">${s.symbol}</div></div>`;
       }
-
-      function updateStacks(anim=false){ 
-        const hs=document.getElementById('hero-stack'), vs=document.getElementById('villain-stack');
-        if(anim){hs.style.transition='color .4s'; vs.style.transition='color .4s';}
-        hs.textContent=heroStack.toLocaleString(); document.getElementById('hero-stack-display').textContent=heroStack.toLocaleString();
-        vs.textContent=villainStack.toLocaleString(); document.getElementById('villain-stack-display').textContent=villainStack.toLocaleString();
-      }
-      function updatePot(anim=true){ const el=document.getElementById('pot-amount'); const pd=document.getElementById('pot-display'); el.textContent=pot.toLocaleString(); if(anim){pd.style.transform='translate(-50%,-50%) scale(1.15)'; setTimeout(()=>pd.style.transform='translate(-50%,-50%) scale(1)',220);} }
-      function updateBlinds(){ document.getElementById('blinds').textContent=`${blinds.small}/${blinds.big}`; document.getElementById('hand-number').textContent=handNumber; }
-      function log(msg, hl=false){ const logEl=document.getElementById('game-log'); const e=document.createElement('div'); e.className='log-entry'; e.innerHTML=hl?`<span class="highlight">${msg}</span>`:msg; logEl.appendChild(e); logEl.scrollTop=logEl.scrollHeight; }
-      function updateStreet(s){ currentStreet=s; document.getElementById('current-street').textContent = s[0].toUpperCase()+s.slice(1); }
-
-      function renderHero(anim=true){ const c=document.getElementById('hero-cards'); c.innerHTML=''; heroCards.forEach(card=>c.innerHTML+=renderCard(card,true,anim)); }
-      function renderVillain(faceUp=false,anim=true){ const c=document.getElementById('villain-cards'); c.innerHTML=''; villainCards.forEach(card=>c.innerHTML+=renderCard(card,faceUp,anim)); }
-      function renderBoard(anim=true){ const c=document.getElementById('community-cards'); c.innerHTML=''; communityCards.forEach(card=>c.innerHTML+=renderCard(card,true,anim)); }
-
-      function resetUI(){ document.getElementById('hero-cards').innerHTML=''; document.getElementById('villain-cards').innerHTML=''; document.getElementById('community-cards').innerHTML=''; document.getElementById('pot-amount').textContent='0'; updateStreet('preflop'); hideActions(); showDeal(); }
-
-      function showDeal(){ document.getElementById('deal-btn').style.display='inline-block'; hideActions(); }
-      function hideDeal(){ document.getElementById('deal-btn').style.display='none'; }
-      function showActions(canRaise=true){ document.getElementById('fold-btn').style.display='inline-block'; document.getElementById('call-btn').style.display='inline-block'; if(canRaise){ document.getElementById('raise-amount').style.display='inline-block'; document.getElementById('raise-btn').style.display='inline-block'; const maxR=Math.min(pot*2,heroStack); document.getElementById('raise-amount').max=maxR; document.getElementById('raise-amount').value=Math.min(pot||blinds.big*2,maxR); } }
-      function hideActions(){ ['fold-btn','call-btn','raise-amount','raise-btn'].forEach(id=>document.getElementById(id).style.display='none'); }
-
-      // ==================== COMPLETE HAND EVALUATOR ====================
-      function getHandRank(cards5) {
-        const ranks = cards5.map(c => RANK_VAL[c.rank]).sort((a,b)=>b-a);
-        const suits = cards5.map(c => c.suit);
-        const isFlush = suits.every(s => s === suits[0]);
-        const isStraight = ranks[0]-ranks[4]===4 || (ranks[0]===14 && ranks[1]===5 && ranks[4]===2); // wheel
-        const counts = {}; ranks.forEach(r=>counts[r]=(counts[r]||0)+1);
-        const vals = Object.values(counts).sort((a,b)=>b-a);
-        const isFour = vals[0]===4; const isFull = vals[0]===3 && vals[1]===2; const isThree=vals[0]===3; const isTwoPair=vals[0]===2&&vals[1]===2; const isPair=vals[0]===2;
-
-        let score = 0;
-        if (isFlush && isStraight) score = 9000000 + ranks[0]; // straight flush
-        else if (isFour) score = 8000000 + ranks[0]*10000;
-        else if (isFull) score = 7000000 + ranks[0]*10000 + ranks[2];
-        else if (isFlush) score = 6000000 + ranks[0]*10000 + ranks[1]*100 + ranks[2];
-        else if (isStraight) score = 5000000 + ranks[0];
-        else if (isThree) score = 4000000 + ranks[0]*10000 + ranks[3]*100 + ranks[4];
-        else if (isTwoPair) score = 3000000 + ranks[0]*10000 + ranks[2]*100 + ranks[4];
-        else if (isPair) score = 2000000 + ranks[0]*10000 + ranks[2]*100 + ranks[3]*10 + ranks[4];
-        else score = 1000000 + ranks[0]*10000 + ranks[1]*1000 + ranks[2]*100 + ranks[3]*10 + ranks[4];
-        return score;
-      }
-
-      function bestOmahaScore(hole, board) {
-        let best = 0;
-        // All combinations of 2 from 4 hole + 3 from 5 board
-        for (let i=0; i<4; i++) for (let j=i+1; j<4; j++) {
-          for (let a=0; a<5; a++) for (let b=a+1; b<5; b++) for (let c=b+1; c<5; c++) {
-            const five = [hole[i], hole[j], board[a], board[b], board[c]];
-            const sc = getHandRank(five);
-            if (sc > best) best = sc;
-          }
-        }
-        return best;
-      }
-
-      function dealHand() {
-        if (heroStack <= 0 || villainStack <= 0) { log('Tournament over.', true); return; }
-        createDeck(); shuffle();
-        heroCards = [deal(),deal(),deal(),deal()]; villainCards = [deal(),deal(),deal(),deal()]; communityCards = [];
-        pot = 0; currentBet = blinds.big; heroBetThisStreet = 0; villainBetThisStreet = 0; gameActive = true;
-
-        const sb = Math.min(blinds.small, heroStack); const bb = Math.min(blinds.big, villainStack);
-        heroStack -= sb; villainStack -= bb; pot = sb + bb; heroBetThisStreet = sb; villainBetThisStreet = bb;
-
-        updateStacks(true); updatePot(true); updateBlinds();
-        renderHero(true); renderVillain(false,true); document.getElementById('community-cards').innerHTML = '';
-        playSound('deal'); playSound('blinds');
-        log(`Hand #${handNumber} dealt. Blinds posted.`, true); dealerSay('Good luck, players!', 1600);
-        hideDeal(); updateStreet('preflop'); showActions();
-        setTimeout(()=>{ if(gameActive) log('Your action...'); }, 380);
-      }
-
-      function playerAction(action) {
-        if (!gameActive) return;
-        const raiseInput = document.getElementById('raise-amount'); let amt = 0;
-
-        if (action === 'fold') { playSound('fold'); log('Hero folds.'); endHand(false); return; }
-        if (action === 'call') { playSound('call'); const toCall = currentBet - heroBetThisStreet; amt = Math.min(toCall, heroStack); heroStack -= amt; pot += amt; heroBetThisStreet += amt; log(`Hero calls ${amt}.`); }
-        if (action === 'raise') {
-          playSound('raise'); amt = parseInt(raiseInput.value) || 0;
-          const toCall = currentBet - heroBetThisStreet; const minR = Math.max(blinds.big, currentBet*2); const maxR = Math.min(pot*2 || 999999, heroStack);
-          amt = Math.max(minR, Math.min(amt, maxR));
-          const total = toCall + (amt - currentBet); heroStack -= total; pot += total; heroBetThisStreet += total; currentBet = heroBetThisStreet;
-          log(`Hero raises to ${heroBetThisStreet}.`, true);
-        }
-        updateStacks(true); updatePot(true);
-        setTimeout(aiAction, 650);
-      }
-
-      function aiAction() {
-        if (!gameActive) return;
-        const toCall = currentBet - villainBetThisStreet; const decision = Math.random();
-
-        if (toCall > villainStack) { if (decision > 0.28) { playSound('call'); villainStack=0; pot+=0; villainBetThisStreet=0; log('Villain calls all-in.'); } else { playSound('fold'); log('Villain folds.'); endHand(true); return; } }
-        else if (decision < 0.18) { playSound('fold'); log('Villain folds.'); endHand(true); return; }
-        else if (decision < 0.58) { playSound('call'); villainStack -= toCall; pot += toCall; villainBetThisStreet += toCall; log(`Villain calls ${toCall}.`); }
-        else { playSound('raise'); const raiseTo = Math.min(pot*2, villainStack + villainBetThisStreet); const rAmt = raiseTo - villainBetThisStreet; if (rAmt > 0 && rAmt <= villainStack) { villainStack -= rAmt; pot += rAmt; villainBetThisStreet += rAmt; currentBet = villainBetThisStreet; log(`Villain raises to ${villainBetThisStreet}.`, true); } else { playSound('call'); villainStack -= toCall; pot += toCall; villainBetThisStreet += toCall; log(`Villain calls ${toCall}.`); } }
-        updateStacks(true); updatePot(true);
-        setTimeout(progressStreet, 780);
-      }
-
-      function progressStreet() {
-        if (heroBetThisStreet === villainBetThisStreet) {
-          if (currentStreet === 'preflop') { communityCards.push(deal(),deal(),deal()); renderBoard(true); playSound('deal'); updateStreet('flop'); log('Flop dealt.'); dealerSay('Here comes the flop...', 1400); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
-          else if (currentStreet === 'flop') { communityCards.push(deal()); renderBoard(true); playSound('deal'); updateStreet('turn'); log('Turn dealt.'); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
-          else if (currentStreet === 'turn') { communityCards.push(deal()); renderBoard(true); playSound('deal'); updateStreet('river'); log('River dealt!'); dealerSay('Final card...', 1400); currentBet=heroBetThisStreet=villainBetThisStreet=0; showActions(); }
-          else if (currentStreet === 'river') { endHand(null); }
+      function renderCards(container, cards, hiddenCount=0) {
+        container.innerHTML = '';
+        if (cards && cards.length) {
+          cards.forEach(c => container.innerHTML += renderCard(c, true));
         } else {
-          if (heroBetThisStreet < villainBetThisStreet) { log('Your action...'); showActions(); } else { setTimeout(aiAction, 600); }
+          for (let i=0; i<hiddenCount; i++) container.innerHTML += renderCard(null, false);
         }
       }
 
-      function endHand(heroWinOverride) {
-        gameActive = false; renderVillain(true, true);
-        const heroScore = bestOmahaScore(heroCards, communityCards);
-        const villainScore = bestOmahaScore(villainCards, communityCards);
-        let heroWins = heroWinOverride !== null ? heroWinOverride : (heroScore >= villainScore);
-
-        const prize = pot;
-        if (heroWins) { heroStack += prize; log(`Showdown! You win ${prize} DG!`, true); dealerSay('Congratulations!', 2000); playSound('win'); document.getElementById('pot-display').classList.add('winner-glow'); setTimeout(()=>document.getElementById('pot-display').classList.remove('winner-glow'), 3600); }
-        else { villainStack += prize; log(`Villain wins the pot of ${prize}.`); dealerSay('Better luck next hand', 1800); playSound('win'); }
-        log(`Hero score: ${heroScore} • Villain: ${villainScore}`);
-        updateStacks(true); updatePot(false);
-
-        if (handNumber % 5 === 0) { blinds.small = Math.floor(blinds.small * 1.6); blinds.big = Math.floor(blinds.big * 1.6); updateBlinds(); log('Blinds increased!', true); }
-        handNumber++; showDeal();
-
-        if (heroStack <= 0) log('You are broke. Tournament over.', true);
-        else if (villainStack <= 0) { log('You win the tournament! 🏆', true); playSound('win'); }
+      function updatePot(anim=true) { 
+        const el = els.potAmount; 
+        const pd = $("pot-display"); 
+        el.textContent = (state.snapshot?.hand?.pot || 0).toLocaleString(); 
+        if (anim) { pd.style.transform='translate(-50%,-50%) scale(1.15)'; setTimeout(()=>pd.style.transform='translate(-50%,-50%) scale(1)',220); } 
       }
-
-      function restartTournament() {
-        heroStack = 10000; villainStack = 10000; handNumber = 1; blinds = {small:50, big:100}; currentStreet='preflop'; gameActive=false; pot=0;
-        document.getElementById('game-log').innerHTML = '';
-        resetUI(); updateStacks(); updateBlinds(); updatePot(false);
-        log('New tournament started. Good luck on the beach!', true);
+      function updateBlinds() { 
+        if (state.snapshot?.blinds) {
+          els.blinds.textContent = `${state.snapshot.blinds.small}/${state.snapshot.blinds.big}`;
+        }
       }
+      function log(msg, hl=false) { 
+        const e = document.createElement('div'); 
+        e.className='log-entry'; 
+        e.innerHTML=hl?`<span class="highlight">${msg}</span>`:msg; 
+        els.gameLog.appendChild(e); 
+        els.gameLog.scrollTop=els.gameLog.scrollHeight; 
+      }
+      function updateStreet(s) { els.currentStreet.textContent = s ? s[0].toUpperCase()+s.slice(1) : '—'; }
 
-      document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('deal-btn').style.display !== 'none') dealHand(); });
-
-
-      function dealerSay(text, duration = 1800) {
-        const bubble = document.getElementById('dealer-speech');
-        const txt = document.getElementById('speech-text');
-        if (!bubble || !txt) return;
+      function render(snapshot) { 
+        state.snapshot = snapshot; 
+        const me = snapshot.players?.find(p => p.id === state.playerId) || snapshot.players?.[0]; 
+        const opp = snapshot.players?.find(p => p.id !== state.playerId) || snapshot.players?.[1]; 
         
-        txt.textContent = text;
-        bubble.style.display = 'block';
-        bubble.style.animation = 'none';
-        bubble.offsetHeight; // reflow
-        bubble.style.animation = 'dealerPop 0.2s ease forwards';
-        
-        setTimeout(() => {
-          if (bubble) bubble.style.display = 'none';
-        }, duration);
+        els.heroName.textContent = me ? `${me.handle}${me.id === state.playerId ? " (you)" : ""}` : "You • Hero";
+        els.heroStack.textContent = me ? me.stack.toLocaleString() : "—";
+        els.villainName.textContent = opp ? opp.handle : "Waiting opponent";
+        els.villainStack.textContent = opp ? opp.stack.toLocaleString() : "—";
+
+        // Render 4 hole cards
+        renderCards(els.heroCards, me?.holes || [], me && !me.holes ? 4 : 0);
+        renderCards(els.villainCards, opp?.holes || [], opp ? 4 : 0);
+        renderCards(els.communityCards, snapshot.hand?.community || []);
+
+        updatePot(true);
+        updateBlinds();
+        if (snapshot.hand?.street) updateStreet(snapshot.hand.street);
+
+        // Log events
+        els.gameLog.innerHTML = '';
+        (snapshot.events || []).slice().reverse().forEach(e => {
+          const div = document.createElement('div');
+          div.className = 'log-entry';
+          div.innerHTML = `${new Date(e.t).toLocaleTimeString()} — ${e.msg}`;
+          els.gameLog.appendChild(div);
+        });
+
+        // Update action buttons based on legal actions
+        updateActionButtons(snapshot);
       }
 
-      // Add animation for speech bubble
+      function updateActionButtons(snapshot) {
+        const legal = new Set((snapshot.legalActions || []).map(a => a.action));
+        const isMyTurn = snapshot.hand?.actorId === state.playerId && snapshot.hand?.status === "active";
+        
+        els.foldBtn.style.display = legal.has('fold') ? 'inline-block' : 'none';
+        els.callBtn.style.display = (legal.has('call') || legal.has('check')) ? 'inline-block' : 'none';
+        els.raiseInput.style.display = legal.has('raise') ? 'inline-block' : 'none';
+        els.raiseBtn.style.display = legal.has('raise') ? 'inline-block' : 'none';
+        
+        if (legal.has('raise')) {
+          const maxR = Math.min(snapshot.hand?.pot * 2 || 999999, (snapshot.players?.find(p => p.id === state.playerId)?.stack || 0));
+          els.raiseInput.max = maxR;
+          els.raiseInput.value = Math.min(snapshot.hand?.pot || 200, maxR);
+        }
+      }
+
+      async function poll() { 
+        if (!state.matchId) return; 
+        try { 
+          const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}?playerId=${encodeURIComponent(state.playerId)}`); 
+          setStatus(true, "backend online"); 
+          render(snap); 
+        } catch (err) { 
+          setStatus(false, err.message || "backend offline"); 
+        } 
+      }
+      function startPolling() { if (state.poller) clearInterval(state.poller); state.poller = setInterval(poll, POLL_MS); poll(); }
+
+      async function createMatch() { 
+        state.handle = els.handle.value.trim() || "Sunset"; 
+        const data = await request("/api/matches", { method:"POST", body: JSON.stringify({ handle: state.handle, game: "plo" }) }); 
+        state.matchId = data.matchId; 
+        state.playerId = data.playerId; 
+        els.matchId.value = state.matchId; 
+        saveBasics(); 
+        render(data.state); 
+        startPolling(); 
+      }
+      async function joinMatch() { 
+        state.handle = els.handle.value.trim() || "Sunset"; 
+        state.matchId = normalizeMatchCode(els.matchId.value); 
+        els.matchId.value = state.matchId; 
+        if (state.matchId.length !== 4) throw new Error("Enter a 4-digit match code first"); 
+        const data = await request(`/api/matches/${encodeURIComponent(state.matchId)}/join`, { method:"POST", body: JSON.stringify({ handle: state.handle, game: "plo" }) }); 
+        state.playerId = data.playerId; 
+        saveBasics(); 
+        render(data.state); 
+        startPolling(); 
+      }
+
+      async function sendAction(action) { 
+        const body = { playerId: state.playerId, action }; 
+        if (action === "raise") body.amount = parseInt(els.raiseInput.value, 10) || 0; 
+        const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}/actions`, { method:"POST", body: JSON.stringify(body) }); 
+        render(snap); 
+      }
+
+      function playerAction(type) {
+        if (!state.snapshot) return;
+        sendAction(type).catch(err => setStatus(false, err.message));
+      }
+
+      function wire() { 
+        els.apiUrl.value = state.api; 
+        els.handle.value = state.handle; 
+        state.matchId = isMatchCode(state.matchId) ? state.matchId : ""; 
+        els.matchId.value = state.matchId; 
+        
+        els.matchId.addEventListener("input", () => { els.matchId.value = normalizeMatchCode(els.matchId.value); }); 
+        els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); 
+        els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Sunset"; saveBasics(); }); 
+        
+        els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); 
+        els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); 
+        
+        // Action buttons
+        document.getElementById('action-area').addEventListener('click', (e) => {
+          const btn = e.target.closest('button');
+          if (!btn) return;
+          const action = btn.id === 'fold-btn' ? 'fold' : btn.id === 'call-btn' ? 'call' : btn.id === 'raise-btn' ? 'raise' : null;
+          if (action) playerAction(action);
+        });
+
+        checkHealth(); 
+        if (state.matchId) startPolling(); 
+      }
 
       function init() {
-        createDeck(); updateStacks(); updateBlinds(); updatePot(false);
-        document.getElementById('game-log').innerHTML = '<div class="log-entry">🌊 Complete Heads-Up PLO ready. Four-color deck + sounds + animations.</div>';
-        log('Click DEAL NEW HAND to begin. Sound toggle available.');
-        document.addEventListener('click', ()=>{ initAudio(); }, {once:true});
+        els.gameLog.innerHTML = '<div class="log-entry">🌊 Heads-Up PLO ready — real players only (no bot). Create or join a 4-digit match.</div>';
+        log('Enter match code or create new. Same backend as Hold\'em.');
+        wire();
+        document.addEventListener('click', ()=>{ /* init audio if needed */ }, {once:true});
       }
       window.onload = init;
+
+      // Legacy restart for compatibility (resets local state only)
+      function restartTournament() {
+        if (state.poller) clearInterval(state.poller);
+        state.matchId = ""; state.playerId = ""; state.snapshot = null;
+        els.gameLog.innerHTML = '';
+        log('Match left. Create or join a new one.', true);
+        els.heroStack.textContent = '10,000';
+        els.villainStack.textContent = '—';
+        els.heroCards.innerHTML = '';
+        els.villainCards.innerHTML = '';
+        els.communityCards.innerHTML = '';
+        els.potAmount.textContent = '0';
+        els.currentStreet.textContent = 'Preflop';
+      }
     </script>
     <script src="app.js"></script>
   </body>
