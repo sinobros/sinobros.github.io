@@ -91,10 +91,10 @@ function createCardSVG(rank, suit, faceUp = true) {
       <text x="${CARD_WIDTH/2}" y="${CARD_HEIGHT/2 + 8}" text-anchor="middle" fill="${color}" 
             font-size="42" font-weight="900" opacity="0.15">${symbol}</text>
       
-      <!-- Bottom-right rank + suit (rotated) -->
+      <!-- Bottom-right rank + suit. Draw at the mirrored top-left coordinates before rotation. -->
       <g transform="rotate(180 ${CARD_WIDTH/2} ${CARD_HEIGHT/2})">
-        <text x="${CARD_WIDTH - 9}" y="${CARD_HEIGHT - 18}" fill="#111" font-size="13" font-weight="900" font-family="Poppins, sans-serif" text-anchor="end">${displayRank}</text>
-        <text x="${CARD_WIDTH - 9}" y="${CARD_HEIGHT - 6}" fill="${color}" font-size="16" font-weight="900" text-anchor="end">${symbol}</text>
+        <text x="9" y="18" fill="#111" font-size="13" font-weight="900" font-family="Poppins, sans-serif">${displayRank}</text>
+        <text x="9" y="32" fill="${color}" font-size="16" font-weight="900">${symbol}</text>
       </g>
       
       <!-- Subtle corner accents -->
