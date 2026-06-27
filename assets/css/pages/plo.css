@@ -44,8 +44,9 @@
       .game-log { margin-top: 24px; background: rgba(255,255,255,0.92); border: 2px solid #166534; padding: 16px; height: 140px; overflow-y: auto; font-size: 13px; line-height: 1.5; border-radius: 8px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); }
       .log-entry { margin-bottom: 4px; color: #166534; }
       .log-entry .highlight { color: #fb923c; font-weight: 700; }
-      .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 14px; }
+      .status-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; flex-wrap: wrap; }
       .blinds { background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 999px; border: 2px solid #166534; color: #166534; }
+      .turn-message { background: rgba(255,255,255,0.92); border: 2px solid #166534; border-radius: 999px; color: #166534; font-weight: 800; padding: 6px 16px; text-align: center; }
       .four-color-note { font-size: 12px; opacity: 0.7; text-align: center; margin-top: 8px; color: #166534; }
       .winner-glow { animation: winnerPulse 1.2s ease-in-out 3; }
       @keyframes winnerPulse { 0%,100%: { box-shadow: 0 0 0 0 rgba(251,146,60,0.4); } 50% { box-shadow: 0 0 0 20px rgba(251,146,60,0); } }

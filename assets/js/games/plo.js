@@ -17,8 +17,8 @@
         heroName: $("hero-name"), heroStack: $("hero-stack"), heroCards: $("hero-cards"),
         villainName: $("villain-name"), villainStack: $("villain-stack"), villainCards: $("villain-cards"),
         communityCards: $("community-cards"), potAmount: $("pot-amount"),
-        currentStreet: $("current-street"), gameLog: $("game-log"),
-        foldBtn: $("fold-btn"), callBtn: $("call-btn"), raiseInput: $("raise-amount"), raiseBtn: $("raise-btn"), nextHandBtn: $("next-hand-btn"),
+        currentStreet: $("current-street"), turnMessage: $("turn-message"), gameLog: $("game-log"),
+        foldBtn: $("fold-btn"), callBtn: $("call-btn"), raiseInput: $("raise-amount"), raiseBtn: $("raise-btn"), allInBtn: $("all-in-btn"), nextHandBtn: $("next-hand-btn"),
         blinds: $("blinds"), handNumber: $("hand-number")
       };
 
@@ -128,14 +128,33 @@
         const callAction = legalActions.find(a => a.action === "call");
         const betAction = legalActions.find(a => a.action === "bet");
         const raiseAction = legalActions.find(a => a.action === "raise");
+        const allInAction = legalActions.find(a => a.action === "all-in");
         const wagerAction = raiseAction || betAction;
         const canNextHand = snapshot.phase === "playing" && snapshot.hand && snapshot.hand.status !== "active";
+        const actor = snapshot.players?.find(p => p.id === snapshot.hand?.actorId);
+
+        if (snapshot.phase === "waiting") {
+          els.turnMessage.textContent = `Waiting for opponent. Share match code ${snapshot.matchId}.`;
+        } else if (snapshot.phase === "complete") {
+          const winner = snapshot.players?.find(p => p.id === snapshot.winner);
+          els.turnMessage.textContent = winner ? `${winner.handle} wins the match.` : "Match complete.";
+        } else if (snapshot.hand?.status !== "active") {
+          els.turnMessage.textContent = snapshot.hand?.result?.reason || "Hand complete.";
+        } else if (snapshot.hand?.actorId === state.playerId) {
+          els.turnMessage.textContent = "Your turn.";
+        } else if (actor) {
+          els.turnMessage.textContent = `${actor.handle}'s turn.`;
+        } else {
+          els.turnMessage.textContent = "Waiting for action.";
+        }
         
         els.foldBtn.style.display = legal.has('fold') ? 'inline-block' : 'none';
         els.callBtn.style.display = (legal.has('call') || legal.has('check')) ? 'inline-block' : 'none';
         els.callBtn.textContent = callAction ? `CALL ${callAction.amount}` : "CHECK";
         els.raiseInput.style.display = wagerAction ? 'inline-block' : 'none';
         els.raiseBtn.style.display = wagerAction ? 'inline-block' : 'none';
+        els.allInBtn.style.display = allInAction ? 'inline-block' : 'none';
+        els.allInBtn.textContent = allInAction ? `ALL IN ${allInAction.amount}` : "ALL IN";
         els.nextHandBtn.style.display = canNextHand ? 'inline-block' : 'none';
         
         if (wagerAction) {
@@ -213,6 +232,7 @@
           const action = btn.id === 'fold-btn' ? 'fold' :
             btn.id === 'call-btn' ? (legal.has('call') ? 'call' : 'check') :
             btn.id === 'raise-btn' ? (legal.has('raise') ? 'raise' : 'bet') :
+            btn.id === 'all-in-btn' ? 'all-in' :
             btn.id === 'next-hand-btn' ? 'next-hand' :
             null;
           if (action) playerAction(action);
