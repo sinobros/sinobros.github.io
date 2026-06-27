@@ -161,6 +161,11 @@
 
     <footer class="site-footer">
       <div class="footer-row"><span class="footer-link">REST POLLING</span><span class="footer-divider"></span><span class="footer-link">SERVER AUTHORITATIVE</span><span class="footer-divider"></span><span class="footer-link">PLAY MONEY</span></div>
+      <div class="footer-row footer-health-row">
+        <span class="footer-link">Server alive at <span id="alive-time">—</span></span>
+        <span class="footer-divider"></span>
+        <span class="footer-link">Sessions tracked: <span id="session-count">—</span></span>
+      </div>
       <p class="footer-copy">&copy; 2026 SINOBROS. ALL RIGHTS RESERVED.</p>
     </footer>
 
@@ -170,7 +175,7 @@
       const POLL_MS = 1500;
       const state = { api: localStorage.getItem("sinobrosPokerApiUrl") || DEFAULT_API, handle: localStorage.getItem("sinobrosPokerHandle") || "Dragon", matchId: localStorage.getItem("sinobrosPokerMatchId") || "", playerId: localStorage.getItem("sinobrosPokerPlayerId") || "", snapshot: null, poller: null };
       const $ = (id) => document.getElementById(id);
-      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands") };
+      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands"), aliveTime: $("alive-time"), sessionCount: $("session-count") };
 
       function saveBasics() { localStorage.setItem("sinobrosPokerApiUrl", state.api); localStorage.setItem("sinobrosPokerHandle", state.handle); if (state.matchId) localStorage.setItem("sinobrosPokerMatchId", state.matchId); if (state.playerId) localStorage.setItem("sinobrosPokerPlayerId", state.playerId); }
       function api(path) { return state.api.replace(/\/$/, "") + path; }
@@ -178,7 +183,23 @@
       function isMatchCode(value) { return /^\d{4}$/.test(value); }
       async function request(path, options = {}) { const res = await fetch(api(path), { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`); return data; }
       function setStatus(ok, text) { els.apiStatus.className = `status-chip ${ok ? "ok" : "bad"}`; els.apiStatus.textContent = text; els.offline.hidden = ok; }
-      async function checkHealth() { try { await request("/health"); setStatus(true, "backend online"); } catch { setStatus(false, "backend offline"); } }
+      async function checkHealth() {
+        try {
+          const data = await request("/health");
+          setStatus(true, "backend online");
+          if (els.aliveTime) {
+            const d = new Date(data.ts || Date.now());
+            els.aliveTime.textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          }
+          if (els.sessionCount) {
+            els.sessionCount.textContent = (data.matches !== undefined ? data.matches : "—");
+          }
+        } catch {
+          setStatus(false, "backend offline");
+          if (els.aliveTime) els.aliveTime.textContent = "—";
+          if (els.sessionCount) els.sessionCount.textContent = "—";
+        }
+      }
       function cardColor(card) { return card && (card[1] === "h" || card[1] === "d") ? "red" : "black"; }
       function suitGlyph(card) { return ({s:"♠",h:"♥",d:"♦",c:"♣"})[card?.[1]] || ""; }
       function prettyCard(card) { if (!card) return "?"; return card[0].replace("T", "10") + suitGlyph(card); }
