@@ -110,12 +110,13 @@
         </div>
 
         <div class="actions" id="action-area">
-          <button class="action-btn" id="fold-btn" onclick="playerAction('fold')" style="display:none;">FOLD</button>
-          <button class="action-btn" id="call-btn" onclick="playerAction('call')" style="display:none;">CALL / CHECK</button>
+          <button class="action-btn" id="fold-btn" style="display:none;">FOLD</button>
+          <button class="action-btn" id="call-btn" style="display:none;">CALL / CHECK</button>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="number" id="raise-amount" class="raise-input" value="200" min="100" style="display:none;">
-            <button class="action-btn" id="raise-btn" onclick="playerAction('raise')" style="display:none;">RAISE (POT LIMIT)</button>
+            <button class="action-btn" id="raise-btn" style="display:none;">RAISE (POT LIMIT)</button>
           </div>
+          <button class="action-btn" id="next-hand-btn" style="display:none;">NEXT HAND</button>
         </div>
       </div>
 

@@ -18,7 +18,7 @@
         villainName: $("villain-name"), villainStack: $("villain-stack"), villainCards: $("villain-cards"),
         communityCards: $("community-cards"), potAmount: $("pot-amount"),
         currentStreet: $("current-street"), gameLog: $("game-log"),
-        foldBtn: $("fold-btn"), callBtn: $("call-btn"), raiseInput: $("raise-amount"), raiseBtn: $("raise-btn"),
+        foldBtn: $("fold-btn"), callBtn: $("call-btn"), raiseInput: $("raise-amount"), raiseBtn: $("raise-btn"), nextHandBtn: $("next-hand-btn"),
         blinds: $("blinds"), handNumber: $("hand-number")
       };
 
@@ -106,6 +106,7 @@
 
         updatePot(true);
         updateBlinds();
+        els.handNumber.textContent = ((snapshot.handsPlayed || 0) + (snapshot.hand ? 1 : 0)).toLocaleString();
         if (snapshot.hand?.street) updateStreet(snapshot.hand.street);
 
         // Log events
@@ -122,18 +123,26 @@
       }
 
       function updateActionButtons(snapshot) {
-        const legal = new Set((snapshot.legalActions || []).map(a => a.action));
-        const isMyTurn = snapshot.hand?.actorId === state.playerId && snapshot.hand?.status === "active";
+        const legalActions = snapshot.legalActions || [];
+        const legal = new Set(legalActions.map(a => a.action));
+        const callAction = legalActions.find(a => a.action === "call");
+        const betAction = legalActions.find(a => a.action === "bet");
+        const raiseAction = legalActions.find(a => a.action === "raise");
+        const wagerAction = raiseAction || betAction;
+        const canNextHand = snapshot.phase === "playing" && snapshot.hand && snapshot.hand.status !== "active";
         
         els.foldBtn.style.display = legal.has('fold') ? 'inline-block' : 'none';
         els.callBtn.style.display = (legal.has('call') || legal.has('check')) ? 'inline-block' : 'none';
-        els.raiseInput.style.display = legal.has('raise') ? 'inline-block' : 'none';
-        els.raiseBtn.style.display = legal.has('raise') ? 'inline-block' : 'none';
+        els.callBtn.textContent = callAction ? `CALL ${callAction.amount}` : "CHECK";
+        els.raiseInput.style.display = wagerAction ? 'inline-block' : 'none';
+        els.raiseBtn.style.display = wagerAction ? 'inline-block' : 'none';
+        els.nextHandBtn.style.display = canNextHand ? 'inline-block' : 'none';
         
-        if (legal.has('raise')) {
-          const maxR = Math.min(snapshot.hand?.pot * 2 || 999999, (snapshot.players?.find(p => p.id === state.playerId)?.stack || 0));
-          els.raiseInput.max = maxR;
-          els.raiseInput.value = Math.min(snapshot.hand?.pot || 200, maxR);
+        if (wagerAction) {
+          els.raiseInput.min = wagerAction.min;
+          els.raiseInput.max = wagerAction.max;
+          els.raiseInput.value = wagerAction.max;
+          els.raiseBtn.textContent = wagerAction.action === "bet" ? "BET POT" : "RAISE POT";
         }
       }
 
@@ -173,7 +182,7 @@
 
       async function sendAction(action) { 
         const body = { playerId: state.playerId, action }; 
-        if (action === "raise") body.amount = parseInt(els.raiseInput.value, 10) || 0; 
+        if (action === "bet" || action === "raise") body.amount = parseInt(els.raiseInput.value, 10) || 0; 
         const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}/actions`, { method:"POST", body: JSON.stringify(body) }); 
         render(snap); 
       }
@@ -200,7 +209,12 @@
         document.getElementById('action-area').addEventListener('click', (e) => {
           const btn = e.target.closest('button');
           if (!btn) return;
-          const action = btn.id === 'fold-btn' ? 'fold' : btn.id === 'call-btn' ? 'call' : btn.id === 'raise-btn' ? 'raise' : null;
+          const legal = new Set((state.snapshot?.legalActions || []).map(a => a.action));
+          const action = btn.id === 'fold-btn' ? 'fold' :
+            btn.id === 'call-btn' ? (legal.has('call') ? 'call' : 'check') :
+            btn.id === 'raise-btn' ? (legal.has('raise') ? 'raise' : 'bet') :
+            btn.id === 'next-hand-btn' ? 'next-hand' :
+            null;
           if (action) playerAction(action);
         });
 
