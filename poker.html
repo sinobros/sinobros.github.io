@@ -204,6 +204,26 @@
       function suitGlyph(card) { return ({s:"♠",h:"♥",d:"♦",c:"♣"})[card?.[1]] || ""; }
       function prettyCard(card) { if (!card) return "?"; return card[0].replace("T", "10") + suitGlyph(card); }
       function updateActionButtons(snapshot) { const legal = new Set((snapshot.legalActions || []).map(a => a.action)); els.actions.querySelectorAll("button[data-action]").forEach(btn => { const action = btn.dataset.action; btn.disabled = action === "next-hand" ? !(snapshot.phase === "playing" && snapshot.hand && snapshot.hand.status !== "active") : !legal.has(action); }); }
+      function renderCard(card) { const div = document.createElement("div"); if (!card) { if (window.createCardSVG) { div.innerHTML = createCardSVG("2", "s", false); } else { div.className = "playing-card back"; div.textContent = "🂠"; } return div; } if (window.createCardSVG) { div.innerHTML = createCardSVG(card[0], card[1], true); } else { div.className = `playing-card ${cardColor(card)}`; div.textContent = prettyCard(card); } return div; }
+      function renderHoleCards(container, holes, hasHand) { container.innerHTML = ""; if (!hasHand) return; const cards = holes || [null, null]; cards.forEach(c => container.appendChild(renderCard(c))); }
+      function render(snapshot) {
+        state.snapshot = snapshot;
+        const me = snapshot.players.find(p => p.id === state.playerId);
+        const opp = snapshot.players.find(p => p.id !== state.playerId);
+        const hand = snapshot.hand;
+        if (me) { els.youName.textContent = me.handle; els.youStack.textContent = `Stack ${me.stack}`; renderHoleCards(els.youCards, me.holes, !!hand); els.seatYou.classList.toggle("active", !!(hand && hand.actorId === me.id)); }
+        if (opp) { els.oppName.textContent = opp.handle; els.oppStack.textContent = `Stack ${opp.stack}`; renderHoleCards(els.oppCards, opp.holes, !!hand); els.seatOpp.classList.toggle("active", !!(hand && hand.actorId === opp.id)); }
+        els.board.innerHTML = ""; if (hand && hand.community.length > 0) { hand.community.forEach(c => els.board.appendChild(renderCard(c))); }
+        els.pot.textContent = hand ? hand.pot : 0;
+        let title = "Create or join a match"; let sub = "Play-money heads-up tournament. Button posts the small blind preflop; big blind acts first after the flop.";
+        if (snapshot.phase === "waiting") { title = "Waiting for opponent…"; sub = `Share match code ${snapshot.matchId} with a friend to start.`; }
+        else if (snapshot.phase === "playing" && hand) { if (hand.status === "active") { const actor = snapshot.players.find(p => p.id === hand.actorId); title = hand.actorId === state.playerId ? "Your Turn" : `${actor ? actor.handle : "Opponent"}’s Turn`; sub = hand.street.charAt(0).toUpperCase() + hand.street.slice(1); } else if (hand.result) { const { winner, reason } = hand.result; title = winner === state.playerId ? "You Win!" : winner === null ? "Tie — pot split" : "You Lose"; sub = reason || ""; } }
+        else if (snapshot.phase === "complete") { const w = snapshot.players.find(p => p.id === snapshot.winner); title = snapshot.winner === state.playerId ? "You Win the Match!" : `${w ? w.handle : "Opponent"} Wins the Match`; sub = "Match complete."; }
+        els.turnTitle.textContent = title; els.result.textContent = sub;
+        updateActionButtons(snapshot);
+        els.stateMatch.textContent = snapshot.matchId || "—"; els.statePhase.textContent = snapshot.phase || "—"; els.stateStreet.textContent = hand ? hand.street : "—"; els.stateButton.textContent = hand ? (snapshot.players[hand.buttonSeat] || {}).handle || "—" : "—"; els.stateActor.textContent = hand && hand.actorId ? (snapshot.players.find(p => p.id === hand.actorId) || {}).handle || "—" : "—"; els.stateHands.textContent = snapshot.handsPlayed;
+        if (snapshot.events && snapshot.events.length) { els.eventLog.innerHTML = snapshot.events.slice().reverse().map(e => `<li>${e.msg}</li>`).join(""); }
+      }
       async function poll() { if (!state.matchId) return; try { const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}?playerId=${encodeURIComponent(state.playerId)}`); setStatus(true, "backend online"); render(snap); } catch (err) { setStatus(false, err.message || "backend offline"); } }
       function startPolling() { if (state.poller) clearInterval(state.poller); state.poller = setInterval(poll, POLL_MS); poll(); }
       async function createMatch() { state.handle = els.handle.value.trim() || "Dragon"; const data = await request("/api/matches", { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.matchId = data.matchId; state.playerId = data.playerId; els.matchId.value = state.matchId; saveBasics(); render(data.state); startPolling(); }
