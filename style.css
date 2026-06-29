@@ -42,8 +42,8 @@ body {
 
 .nav {
   display: flex;
-  gap: 56px;
-  margin-left: 120px;
+  gap: 28px;
+  margin-left: 40px;
 }
 
 .nav-link {
@@ -245,7 +245,8 @@ body {
   font-weight: 500;
 }
 
-input {
+input,
+textarea {
   padding: 14px 12px;
   border: 1px solid var(--red);
   background: transparent;
@@ -255,7 +256,13 @@ input {
   border-radius: 0;
 }
 
-input:focus {
+textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus {
   outline: none;
   border-color: var(--yellow);
 }
@@ -281,6 +288,35 @@ button:hover:not(:disabled) {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+/* ---------- Contact ---------- */
+.contact-hero {
+  padding-bottom: 0;
+}
+
+.contact-intro {
+  padding-bottom: 40px;
+}
+
+.contact-section {
+  padding-top: 40px;
+}
+
+.contact-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 860px;
+}
+
+.field-full,
+.contact-form button {
+  grid-column: 1 / -1;
+}
+
+.contact-form button {
+  justify-self: start;
 }
 
 /* ---------- Footer ---------- */
@@ -350,6 +386,9 @@ button:disabled {
     justify-content: flex-start;
   }
   .join-form {
+    grid-template-columns: 1fr;
+  }
+  .contact-form {
     grid-template-columns: 1fr;
   }
   .footer-row {
