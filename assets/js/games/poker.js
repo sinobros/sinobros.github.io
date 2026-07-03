@@ -3,7 +3,7 @@
       const POLL_MS = 1500;
       const state = { api: localStorage.getItem("sinobrosPokerApiUrl") || DEFAULT_API, handle: localStorage.getItem("sinobrosPokerHandle") || "Dragon", matchId: localStorage.getItem("sinobrosPokerMatchId") || "", playerId: localStorage.getItem("sinobrosPokerPlayerId") || "", snapshot: null, poller: null, betRange: { min: 0, max: 0, bb: 20, initialized: false } };
       const $ = (id) => document.getElementById(id);
-      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), raiseLabel: $("raise-amount-label"), betSlider: $("bet-slider"), betMinus: $("bet-decrement"), betPlus: $("bet-increment"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands"), aliveTime: $("alive-time"), sessionCount: $("session-count") };
+      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), youHandReadout: $("you-hand-readout"), youHandName: $("you-hand-name"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), raiseLabel: $("raise-amount-label"), betSlider: $("bet-slider"), betMinus: $("bet-decrement"), betPlus: $("bet-increment"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands"), aliveTime: $("alive-time"), sessionCount: $("session-count") };
 
       function saveBasics() { localStorage.setItem("sinobrosPokerApiUrl", state.api); localStorage.setItem("sinobrosPokerHandle", state.handle); if (state.matchId) localStorage.setItem("sinobrosPokerMatchId", state.matchId); if (state.playerId) localStorage.setItem("sinobrosPokerPlayerId", state.playerId); }
       function api(path) { return state.api.replace(/\/$/, "") + path; }
@@ -31,6 +31,110 @@
       function cardColor(card) { return card && (card[1] === "h" || card[1] === "d") ? "red" : "black"; }
       function suitGlyph(card) { return ({s:"♠",h:"♥",d:"♦",c:"♣"})[card?.[1]] || ""; }
       function prettyCard(card) { if (!card) return "?"; return card[0].replace("T", "10") + suitGlyph(card); }
+      const RANK_ORDER = "23456789TJQKA";
+      const RANK_LABELS = ["Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"];
+      const RANK_PLURALS = ["Twos", "Threes", "Fours", "Fives", "Sixes", "Sevens", "Eights", "Nines", "Tens", "Jacks", "Queens", "Kings", "Aces"];
+      const HAND_RANKS = { HIGH_CARD: 0, ONE_PAIR: 1, TWO_PAIR: 2, THREE_OF_A_KIND: 3, STRAIGHT: 4, FLUSH: 5, FULL_HOUSE: 6, FOUR_OF_A_KIND: 7, STRAIGHT_FLUSH: 8 };
+      function rankIndex(rank) { return RANK_ORDER.indexOf(rank); }
+      function validCards(cards) { return (cards || []).filter(card => typeof card === "string" && card.length >= 2 && rankIndex(card[0]) >= 0); }
+      function evaluate5(cards) {
+        const ranks = cards.map(card => rankIndex(card[0])).sort((a, b) => b - a);
+        const suits = cards.map(card => card[1]);
+        const isFlush = suits.every(suit => suit === suits[0]);
+        const rankSet = [...new Set(ranks)];
+        let isStraight = false;
+        let straightHigh = 0;
+        if (rankSet.length === 5) {
+          if (ranks[0] - ranks[4] === 4) {
+            isStraight = true;
+            straightHigh = ranks[0];
+          } else if (ranks[0] === 12 && ranks[1] === 3 && ranks[2] === 2 && ranks[3] === 1 && ranks[4] === 0) {
+            isStraight = true;
+            straightHigh = 3;
+          }
+        }
+
+        const freq = {};
+        for (const rank of ranks) freq[rank] = (freq[rank] || 0) + 1;
+        const counts = Object.entries(freq)
+          .map(([rank, count]) => ({ r: Number(rank), c: count }))
+          .sort((a, b) => b.c - a.c || b.r - a.r);
+
+        if (isFlush && isStraight) return { rank: HAND_RANKS.STRAIGHT_FLUSH, tiebreak: [straightHigh] };
+        if (counts[0].c === 4) return { rank: HAND_RANKS.FOUR_OF_A_KIND, tiebreak: [counts[0].r, counts[1].r] };
+        if (counts[0].c === 3 && counts[1].c === 2) return { rank: HAND_RANKS.FULL_HOUSE, tiebreak: [counts[0].r, counts[1].r] };
+        if (isFlush) return { rank: HAND_RANKS.FLUSH, tiebreak: ranks };
+        if (isStraight) return { rank: HAND_RANKS.STRAIGHT, tiebreak: [straightHigh] };
+        if (counts[0].c === 3) return { rank: HAND_RANKS.THREE_OF_A_KIND, tiebreak: [counts[0].r, ...counts.slice(1).map(x => x.r)] };
+        if (counts[0].c === 2 && counts[1].c === 2) return { rank: HAND_RANKS.TWO_PAIR, tiebreak: [counts[0].r, counts[1].r, counts[2].r] };
+        if (counts[0].c === 2) return { rank: HAND_RANKS.ONE_PAIR, tiebreak: [counts[0].r, ...counts.slice(1).map(x => x.r)] };
+        return { rank: HAND_RANKS.HIGH_CARD, tiebreak: ranks };
+      }
+      function combinations(arr, k) {
+        if (k === 0) return [[]];
+        if (arr.length < k) return [];
+        if (arr.length === k) return [arr];
+        const [first, ...rest] = arr;
+        return [...combinations(rest, k - 1).map(combo => [first, ...combo]), ...combinations(rest, k)];
+      }
+      function compareEval(a, b) {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        for (let i = 0; i < Math.min(a.tiebreak.length, b.tiebreak.length); i++) {
+          if (a.tiebreak[i] !== b.tiebreak[i]) return a.tiebreak[i] - b.tiebreak[i];
+        }
+        return 0;
+      }
+      function bestHoldemHand(cards) {
+        let best = null;
+        for (const five of combinations(cards, 5)) {
+          const ev = evaluate5(five);
+          if (!best || compareEval(ev, best) > 0) best = ev;
+        }
+        return best;
+      }
+      function highLabel(rank) { return `${RANK_LABELS[rank]} high`; }
+      function describeMadeHand(ev) {
+        if (!ev) return "";
+        switch (ev.rank) {
+          case HAND_RANKS.STRAIGHT_FLUSH:
+            return ev.tiebreak[0] === 12 ? "Royal flush" : `Straight flush, ${highLabel(ev.tiebreak[0])}`;
+          case HAND_RANKS.FOUR_OF_A_KIND:
+            return `Four of a kind, ${RANK_PLURALS[ev.tiebreak[0]]}`;
+          case HAND_RANKS.FULL_HOUSE:
+            return `Full house, ${RANK_PLURALS[ev.tiebreak[0]]} over ${RANK_PLURALS[ev.tiebreak[1]]}`;
+          case HAND_RANKS.FLUSH:
+            return `Flush, ${highLabel(ev.tiebreak[0])}`;
+          case HAND_RANKS.STRAIGHT:
+            return `Straight, ${highLabel(ev.tiebreak[0])}`;
+          case HAND_RANKS.THREE_OF_A_KIND:
+            return `Three of a kind, ${RANK_PLURALS[ev.tiebreak[0]]}`;
+          case HAND_RANKS.TWO_PAIR:
+            return `Two pair, ${RANK_PLURALS[ev.tiebreak[0]]} and ${RANK_PLURALS[ev.tiebreak[1]]}`;
+          case HAND_RANKS.ONE_PAIR:
+            return `Pair of ${RANK_PLURALS[ev.tiebreak[0]]}`;
+          default:
+            return highLabel(ev.tiebreak[0]);
+        }
+      }
+      function describeStartingHand(cards) {
+        const ranks = cards.map(card => rankIndex(card[0])).sort((a, b) => b - a);
+        if (ranks.length < 2) return "";
+        if (ranks[0] === ranks[1]) return `Pocket ${RANK_PLURALS[ranks[0]]}`;
+        return `${RANK_LABELS[ranks[0]]}-${RANK_LABELS[ranks[1]]} ${cards[0][1] === cards[1][1] ? "suited" : "offsuit"}`;
+      }
+      function describeVisibleHoldemHand(holeCards, boardCards) {
+        const holes = validCards(holeCards);
+        const board = validCards(boardCards);
+        if (holes.length < 2) return "";
+        if (board.length < 3) return describeStartingHand(holes);
+        return describeMadeHand(bestHoldemHand([...holes, ...board]));
+      }
+      function updateHandReadout(player, hand) {
+        if (!els.youHandReadout || !els.youHandName) return;
+        const name = player && hand ? describeVisibleHoldemHand(player.holes, hand.community) : "";
+        els.youHandReadout.hidden = !name;
+        els.youHandName.textContent = name || "—";
+      }
       function updateActionButtons(snapshot) { const legal = new Set((snapshot.legalActions || []).map(a => a.action)); els.actions.querySelectorAll("button[data-action]").forEach(btn => { const action = btn.dataset.action; btn.disabled = action === "next-hand" ? !(snapshot.phase === "playing" && snapshot.hand && snapshot.hand.status !== "active") : !legal.has(action); }); }
       function refreshSliderButtons() { const value = Number(els.raise.value); const min = Number(els.raise.min); const max = Number(els.raise.max); els.raiseLabel.textContent = value; els.betMinus.disabled = els.raise.disabled || value <= min; els.betPlus.disabled = els.raise.disabled || value >= max; }
       function configureBetSlider(snapshot) {
@@ -55,6 +159,7 @@
         const hand = snapshot.hand;
         if (me) { els.youName.textContent = me.handle; els.youStack.textContent = `Stack ${me.stack}`; renderHoleCards(els.youCards, me.holes, !!hand); els.seatYou.classList.toggle("active", !!(hand && hand.actorId === me.id)); }
         if (opp) { els.oppName.textContent = opp.handle; els.oppStack.textContent = `Stack ${opp.stack}`; renderHoleCards(els.oppCards, opp.holes, !!hand); els.seatOpp.classList.toggle("active", !!(hand && hand.actorId === opp.id)); }
+        updateHandReadout(me, hand);
         els.board.innerHTML = ""; if (hand && hand.community.length > 0) { hand.community.forEach(c => els.board.appendChild(renderCard(c))); }
         els.pot.textContent = hand ? hand.pot : 0;
         let title = "Create or join a match"; let sub = "Play-money heads-up tournament. Button posts the small blind preflop; big blind acts first after the flop.";

@@ -11,7 +11,7 @@
       .status-chip.bad { border-color:var(--red); background:rgba(229,30,71,.12); }
       .poker-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(320px,.8fr); gap:22px; align-items:start; }
       .lobby-panel { margin-bottom:22px; display:grid; grid-template-columns:1fr auto auto; gap:14px; align-items:end; }
-      .table-shell { position:relative; min-height:650px; padding:34px; overflow:hidden; border:1px solid #1f1f1f; background:radial-gradient(ellipse at 50% 50%, rgba(229,30,71,.2), transparent 60%), radial-gradient(ellipse at 50% 75%, rgba(255,230,0,.11), transparent 62%), #050505; }
+      .table-shell { position:relative; min-height:650px; padding:34px 34px 92px; overflow:hidden; border:1px solid #1f1f1f; background:radial-gradient(ellipse at 50% 50%, rgba(229,30,71,.2), transparent 60%), radial-gradient(ellipse at 50% 75%, rgba(255,230,0,.11), transparent 62%), #050505; }
       .table-shell::before { content:""; position:absolute; inset:28px; border-radius:48%; border:2px solid rgba(255,230,0,.18); box-shadow:inset 0 0 80px rgba(229,30,71,.12); pointer-events:none; }
       .seat-zone { position:relative; z-index:1; display:flex; justify-content:space-between; gap:18px; align-items:center; margin-bottom:28px; }
       .seat-card { min-width:220px; border:1px solid rgba(229,30,71,.75); background:rgba(0,0,0,.72); padding:16px; }
@@ -28,6 +28,10 @@
       .action-panel { position:relative; z-index:1; background:rgba(0,0,0,.78); border:1px solid #1f1f1f; padding:20px; margin-top:26px; }
       .action-title { color:var(--yellow); font-weight:900; font-size:22px; margin-bottom:10px; }
       .action-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+      .hand-readout { position:absolute; right:34px; bottom:28px; z-index:1; display:flex; flex-direction:column; align-items:flex-end; gap:4px; max-width:min(320px,calc(100% - 68px)); border:1px solid rgba(255,230,0,.34); background:rgba(0,0,0,.86); color:var(--yellow); padding:12px 14px; text-align:right; box-shadow:0 12px 28px rgba(0,0,0,.35); }
+      .hand-readout[hidden] { display:none; }
+      .hand-readout span { opacity:.58; font-size:10px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+      .hand-readout strong { font-size:18px; line-height:1.15; text-transform:uppercase; overflow-wrap:anywhere; }
       .bet-slider { display:flex; align-items:center; gap:10px; background:#050505; border:1px solid var(--red); padding:0 10px; height:48px; flex:1 1 220px; min-width:0; max-width:340px; box-sizing:border-box; }
       .bet-slider[hidden] { display:none; }
       .slider-step-btn { width:32px; height:32px; min-height:0; padding:0; flex:none; border:1px solid var(--red); border-radius:var(--border-radius); background:transparent; color:var(--yellow); font-size:18px; font-weight:900; line-height:1; cursor:pointer; display:grid; place-items:center; }
@@ -48,4 +52,4 @@
       .event-log { list-style:none; display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; }
       .event-log li { color:var(--yellow); opacity:.82; font-size:13px; border-left:2px solid var(--red); padding-left:10px; }
       .banner-note { color:var(--yellow); border:1px solid rgba(255,230,0,.22); padding:14px 16px; background:rgba(255,230,0,.06); margin-bottom:16px; }
-      @media (max-width: 960px) { .poker-main { padding:28px 24px 60px; } .api-panel, .lobby-panel, .poker-grid { grid-template-columns:1fr; } .table-shell { padding:20px; } .seat-zone { flex-direction:column; align-items:stretch; } }
+      @media (max-width: 960px) { .poker-main { padding:28px 24px 60px; } .api-panel, .lobby-panel, .poker-grid { grid-template-columns:1fr; } .table-shell { padding:20px; } .seat-zone { flex-direction:column; align-items:stretch; } .hand-readout { position:relative; right:auto; bottom:auto; align-items:flex-start; max-width:none; margin-top:18px; text-align:left; } }
