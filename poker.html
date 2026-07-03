@@ -91,7 +91,12 @@
               <button data-action="check" class="action-btn" type="button">Check</button>
               <button data-action="call" class="action-btn" type="button">Call</button>
               <button data-action="fold" class="action-btn secondary" type="button">Fold</button>
-              <input id="raise-amount" class="raise-input" type="number" min="1" step="10" value="40" />
+              <div class="bet-slider" id="bet-slider" hidden>
+                <button id="bet-decrement" class="slider-step-btn" type="button" aria-label="Decrease bet by one big blind">−</button>
+                <input id="raise-amount" class="raise-range" type="range" min="0" max="0" step="1" value="0" aria-label="Bet amount" />
+                <button id="bet-increment" class="slider-step-btn" type="button" aria-label="Increase bet by one big blind">+</button>
+                <span id="raise-amount-label" class="raise-readout">0</span>
+              </div>
               <button data-action="bet" class="action-btn" type="button">Bet</button>
               <button data-action="raise" class="action-btn" type="button">Raise</button>
               <button data-action="all-in" class="action-btn secondary" type="button">All In</button>
