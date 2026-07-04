@@ -1,13 +1,17 @@
       "use strict";
       const DEFAULT_API = "https://golfmat.ch:3000";
       const POLL_MS = 1500;
+      const TIMER_TICK_MS = 1000;
       const state = { 
         api: localStorage.getItem("sinobrosPloApiUrl") || DEFAULT_API, 
         handle: localStorage.getItem("sinobrosPloHandle") || "Sunset", 
         matchId: localStorage.getItem("sinobrosPloMatchId") || "", 
         playerId: localStorage.getItem("sinobrosPloPlayerId") || "", 
         snapshot: null, 
-        poller: null 
+        poller: null,
+        blindTimer: null,
+        blindTimerReceivedAt: 0,
+        timerTicker: null
       };
       const $ = (id) => document.getElementById(id);
       const els = { 
@@ -19,7 +23,7 @@
         communityCards: $("community-cards"), potAmount: $("pot-amount"),
         currentStreet: $("current-street"), turnMessage: $("turn-message"), gameLog: $("game-log"),
         foldBtn: $("fold-btn"), callBtn: $("call-btn"), raiseInput: $("raise-amount"), raiseBtn: $("raise-btn"), allInBtn: $("all-in-btn"), nextHandBtn: $("next-hand-btn"),
-        blinds: $("blinds"), handNumber: $("hand-number")
+        blinds: $("blinds"), blindTimer: $("blind-timer"), blindLevel: $("blind-level"), nextBlinds: $("next-blinds"), handNumber: $("hand-number")
       };
 
       function saveBasics() { 
@@ -75,10 +79,47 @@
         el.textContent = (state.snapshot?.hand?.pot || 0).toLocaleString(); 
         if (anim) { pd.style.transform='translate(-50%,-50%) scale(1.15)'; setTimeout(()=>pd.style.transform='translate(-50%,-50%) scale(1)',220); } 
       }
-      function updateBlinds() { 
-        if (state.snapshot?.blinds) {
-          els.blinds.textContent = `${state.snapshot.blinds.small}/${state.snapshot.blinds.big}`;
+      function formatTimer(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = String(totalSeconds % 60).padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+      function updateBlindTimer() {
+        if (!els.blindTimer || !els.blindLevel || !els.nextBlinds) return;
+
+        const timer = state.blindTimer;
+        if (!timer || !timer.enabled) {
+          els.blindTimer.textContent = "3:00";
+          els.blindLevel.textContent = "1";
+          els.nextBlinds.textContent = "20/40";
+          els.blindTimer.closest(".blind-timer-box")?.classList.remove("is-urgent");
+          return;
         }
+
+        els.blindLevel.textContent = (timer.level + 1).toLocaleString();
+        els.nextBlinds.textContent = timer.next ? `${timer.next.small}/${timer.next.big}` : "—";
+
+        if (!timer.startedAt) {
+          els.blindTimer.textContent = "Waiting";
+          els.blindTimer.closest(".blind-timer-box")?.classList.remove("is-urgent");
+          return;
+        }
+
+        const elapsedSincePoll = Date.now() - state.blindTimerReceivedAt;
+        const remainingMs = Math.max(0, timer.remainingMs - elapsedSincePoll);
+        els.blindTimer.textContent = formatTimer(remainingMs);
+        els.blindTimer.closest(".blind-timer-box")?.classList.toggle("is-urgent", remainingMs <= 30000);
+      }
+      function updateBlinds() { 
+        const activeHandBlinds = state.snapshot?.hand?.status === "active" ? state.snapshot.hand.blinds : null;
+        const blinds = activeHandBlinds || state.snapshot?.blinds;
+        if (blinds) {
+          els.blinds.textContent = `${blinds.small}/${blinds.big}`;
+        }
+        state.blindTimer = state.snapshot?.blindTimer || null;
+        state.blindTimerReceivedAt = Date.now();
+        updateBlindTimer();
       }
       function log(msg, hl=false) { 
         const e = document.createElement('div'); 
@@ -176,6 +217,11 @@
         } 
       }
       function startPolling() { if (state.poller) clearInterval(state.poller); state.poller = setInterval(poll, POLL_MS); poll(); }
+      function startBlindTimerTick() { 
+        if (state.timerTicker) clearInterval(state.timerTicker); 
+        state.timerTicker = setInterval(updateBlindTimer, TIMER_TICK_MS); 
+        updateBlindTimer(); 
+      }
 
       async function createMatch() { 
         state.handle = els.handle.value.trim() || "Sunset"; 
@@ -239,6 +285,7 @@
         });
 
         checkHealth(); 
+        startBlindTimerTick();
         if (state.matchId) startPolling(); 
       }
 
@@ -254,6 +301,7 @@
       function restartTournament() {
         if (state.poller) clearInterval(state.poller);
         state.matchId = ""; state.playerId = ""; state.snapshot = null;
+        state.blindTimer = null; state.blindTimerReceivedAt = 0;
         els.gameLog.innerHTML = '';
         log('Match left. Create or join a new one.', true);
         els.heroStack.textContent = '10,000';
@@ -263,4 +311,6 @@
         els.communityCards.innerHTML = '';
         els.potAmount.textContent = '0';
         els.currentStreet.textContent = 'Preflop';
+        els.blinds.textContent = '10/20';
+        updateBlindTimer();
       }

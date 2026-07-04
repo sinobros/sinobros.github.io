@@ -49,6 +49,8 @@
       .state-panel h3, .history-panel h3 { color:var(--yellow); font-size:24px; margin-bottom:14px; }
       .kv { display:grid; grid-template-columns:130px 1fr; gap:8px; color:var(--yellow); font-size:14px; padding:8px 0; border-bottom:1px solid rgba(255,230,0,.08); }
       .kv span:first-child { opacity:.55; text-transform:uppercase; font-size:11px; letter-spacing:.08em; }
+      .kv.blind-timer-row strong { font-variant-numeric:tabular-nums; }
+      .kv.blind-timer-row.is-urgent strong { color:var(--red); }
       .event-log { list-style:none; display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; }
       .event-log li { color:var(--yellow); opacity:.82; font-size:13px; border-left:2px solid var(--red); padding-left:10px; }
       .banner-note { color:var(--yellow); border:1px solid rgba(255,230,0,.22); padding:14px 16px; background:rgba(255,230,0,.06); margin-bottom:16px; }

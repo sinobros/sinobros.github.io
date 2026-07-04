@@ -1,9 +1,10 @@
       "use strict";
       const DEFAULT_API = "https://golfmat.ch:3000";
       const POLL_MS = 1500;
-      const state = { api: localStorage.getItem("sinobrosPokerApiUrl") || DEFAULT_API, handle: localStorage.getItem("sinobrosPokerHandle") || "Dragon", matchId: localStorage.getItem("sinobrosPokerMatchId") || "", playerId: localStorage.getItem("sinobrosPokerPlayerId") || "", snapshot: null, poller: null, betRange: { min: 0, max: 0, bb: 20, initialized: false } };
+      const TIMER_TICK_MS = 1000;
+      const state = { api: localStorage.getItem("sinobrosPokerApiUrl") || DEFAULT_API, handle: localStorage.getItem("sinobrosPokerHandle") || "Dragon", matchId: localStorage.getItem("sinobrosPokerMatchId") || "", playerId: localStorage.getItem("sinobrosPokerPlayerId") || "", snapshot: null, poller: null, betRange: { min: 0, max: 0, bb: 20, initialized: false }, blindTimer: null, blindTimerReceivedAt: 0, timerTicker: null };
       const $ = (id) => document.getElementById(id);
-      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), youHandReadout: $("you-hand-readout"), youHandName: $("you-hand-name"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), raiseLabel: $("raise-amount-label"), betSlider: $("bet-slider"), betMinus: $("bet-decrement"), betPlus: $("bet-increment"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands"), aliveTime: $("alive-time"), sessionCount: $("session-count") };
+      const els = { apiUrl: $("api-url"), handle: $("handle"), apiStatus: $("api-status"), matchId: $("match-id"), create: $("create-match"), join: $("join-match"), offline: $("offline-note"), youName: $("you-name"), youStack: $("you-stack"), youCards: $("you-cards"), youHandReadout: $("you-hand-readout"), youHandName: $("you-hand-name"), oppName: $("opp-name"), oppStack: $("opp-stack"), oppCards: $("opp-cards"), seatYou: $("seat-you"), seatOpp: $("seat-opp"), board: $("board"), pot: $("pot"), turnTitle: $("turn-title"), result: $("result-text"), actions: $("actions"), raise: $("raise-amount"), raiseLabel: $("raise-amount-label"), betSlider: $("bet-slider"), betMinus: $("bet-decrement"), betPlus: $("bet-increment"), eventLog: $("event-log"), stateMatch: $("state-match"), statePhase: $("state-phase"), stateStreet: $("state-street"), stateButton: $("state-button"), stateActor: $("state-actor"), stateHands: $("state-hands"), stateBlinds: $("state-blinds"), stateBlindLevel: $("state-blind-level"), stateBlindTimer: $("state-blind-timer"), blindTimerRow: $("blind-timer-row"), aliveTime: $("alive-time"), sessionCount: $("session-count") };
 
       function saveBasics() { localStorage.setItem("sinobrosPokerApiUrl", state.api); localStorage.setItem("sinobrosPokerHandle", state.handle); if (state.matchId) localStorage.setItem("sinobrosPokerMatchId", state.matchId); if (state.playerId) localStorage.setItem("sinobrosPokerPlayerId", state.playerId); }
       function api(path) { return state.api.replace(/\/$/, "") + path; }
@@ -135,6 +136,22 @@
         els.youHandReadout.hidden = !name;
         els.youHandName.textContent = name || "—";
       }
+      function formatTimer(ms) { const totalSeconds = Math.max(0, Math.ceil(ms / 1000)); const minutes = Math.floor(totalSeconds / 60); const seconds = String(totalSeconds % 60).padStart(2, "0"); return `${minutes}:${seconds}`; }
+      function updateBlindTimer() {
+        if (!els.stateBlindTimer || !els.stateBlindLevel) return;
+        const timer = state.blindTimer;
+        if (!timer || !timer.enabled || !timer.startedAt) {
+          els.stateBlindTimer.textContent = timer && timer.enabled ? "Waiting" : "3:00";
+          els.blindTimerRow && els.blindTimerRow.classList.remove("is-urgent");
+          return;
+        }
+        els.stateBlindLevel.textContent = timer.level + 1;
+        const elapsedSincePoll = Date.now() - state.blindTimerReceivedAt;
+        const remainingMs = Math.max(0, timer.remainingMs - elapsedSincePoll);
+        els.stateBlindTimer.textContent = formatTimer(remainingMs);
+        els.blindTimerRow && els.blindTimerRow.classList.toggle("is-urgent", remainingMs <= 30000);
+      }
+      function startBlindTimerTick() { if (state.timerTicker) clearInterval(state.timerTicker); state.timerTicker = setInterval(updateBlindTimer, TIMER_TICK_MS); updateBlindTimer(); }
       function updateActionButtons(snapshot) { const legal = new Set((snapshot.legalActions || []).map(a => a.action)); els.actions.querySelectorAll("button[data-action]").forEach(btn => { const action = btn.dataset.action; btn.disabled = action === "next-hand" ? !(snapshot.phase === "playing" && snapshot.hand && snapshot.hand.status !== "active") : !legal.has(action); }); }
       function refreshSliderButtons() { const value = Number(els.raise.value); const min = Number(els.raise.min); const max = Number(els.raise.max); els.raiseLabel.textContent = value; els.betMinus.disabled = els.raise.disabled || value <= min; els.betPlus.disabled = els.raise.disabled || value >= max; }
       function configureBetSlider(snapshot) {
@@ -164,12 +181,18 @@
         els.pot.textContent = hand ? hand.pot : 0;
         let title = "Create or join a match"; let sub = "Play-money heads-up tournament. Button posts the small blind preflop; big blind acts first after the flop.";
         if (snapshot.phase === "waiting") { title = "Waiting for opponent…"; sub = `Share match code ${snapshot.matchId} with a friend to start.`; }
-        else if (snapshot.phase === "playing" && hand) { if (hand.status === "active") { const actor = snapshot.players.find(p => p.id === hand.actorId); title = hand.actorId === state.playerId ? "Your Turn" : `${actor ? actor.handle : "Opponent"}’s Turn`; sub = hand.street.charAt(0).toUpperCase() + hand.street.slice(1); } else if (hand.result) { const { winner, reason } = hand.result; title = winner === state.playerId ? "You Win!" : winner === null ? "Tie — pot split" : "You Lose"; sub = reason || ""; } }
+        else if (snapshot.phase === "playing" && hand) { if (hand.status === "active") { const actor = snapshot.players.find(p => p.id === hand.actorId); title = hand.actorId === state.playerId ? "Your Turn" : `${actor ? actor.handle : "Opponent"}’s Turn`; sub = hand.street.charAt(0).toUpperCase() + hand.street.slice(1); } else if (hand.result) { const { winner, reason } = hand.result; title = winner === state.playerId ? "You Win!" : winner === null ? "Tie — pot split" : "You Lose"; sub = `${reason || ""} · Next hand starting…`.trim(); } }
         else if (snapshot.phase === "complete") { const w = snapshot.players.find(p => p.id === snapshot.winner); title = snapshot.winner === state.playerId ? "You Win the Match!" : `${w ? w.handle : "Opponent"} Wins the Match`; sub = "Match complete."; }
         els.turnTitle.textContent = title; els.result.textContent = sub;
         updateActionButtons(snapshot);
         configureBetSlider(snapshot);
         els.stateMatch.textContent = snapshot.matchId || "—"; els.statePhase.textContent = snapshot.phase || "—"; els.stateStreet.textContent = hand ? hand.street : "—"; els.stateButton.textContent = hand ? (snapshot.players[hand.buttonSeat] || {}).handle || "—" : "—"; els.stateActor.textContent = hand && hand.actorId ? (snapshot.players.find(p => p.id === hand.actorId) || {}).handle || "—" : "—"; els.stateHands.textContent = snapshot.handsPlayed;
+        const activeHandBlinds = hand && hand.status === "active" ? hand.blinds : null;
+        const blinds = activeHandBlinds || snapshot.blinds;
+        if (blinds && els.stateBlinds) els.stateBlinds.textContent = `${blinds.small} / ${blinds.big}`;
+        state.blindTimer = snapshot.blindTimer || null;
+        state.blindTimerReceivedAt = Date.now();
+        updateBlindTimer();
         if (snapshot.events && snapshot.events.length) { els.eventLog.innerHTML = snapshot.events.slice().reverse().map(e => `<li>${e.msg}</li>`).join(""); }
       }
       async function poll() { if (!state.matchId) return; try { const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}?playerId=${encodeURIComponent(state.playerId)}`); setStatus(true, "backend online"); render(snap); } catch (err) { setStatus(false, err.message || "backend offline"); } }
@@ -177,5 +200,5 @@
       async function createMatch() { state.handle = els.handle.value.trim() || "Dragon"; const data = await request("/api/matches", { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.matchId = data.matchId; state.playerId = data.playerId; els.matchId.value = state.matchId; saveBasics(); render(data.state); startPolling(); }
       async function joinMatch() { state.handle = els.handle.value.trim() || "Dragon"; state.matchId = normalizeMatchCode(els.matchId.value); els.matchId.value = state.matchId; if (state.matchId.length !== 4) throw new Error("Enter a 4-digit match code first"); const data = await request(`/api/matches/${encodeURIComponent(state.matchId)}/join`, { method:"POST", body: JSON.stringify({ handle: state.handle }) }); state.playerId = data.playerId; saveBasics(); render(data.state); startPolling(); }
       async function sendAction(action) { const body = { playerId: state.playerId, action }; if (action === "bet" || action === "raise") body.amount = parseInt(els.raise.value, 10) || 0; const { state: snap } = await request(`/api/matches/${encodeURIComponent(state.matchId)}/actions`, { method:"POST", body: JSON.stringify(body) }); render(snap); }
-      function wire() { els.apiUrl.value = state.api; els.handle.value = state.handle; state.matchId = isMatchCode(state.matchId) ? state.matchId : ""; els.matchId.value = state.matchId; els.matchId.addEventListener("input", () => { els.matchId.value = normalizeMatchCode(els.matchId.value); }); els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Dragon"; saveBasics(); }); els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); els.actions.addEventListener("click", (e) => { const btn = e.target.closest("button[data-action]"); if (btn && !btn.disabled) sendAction(btn.dataset.action).catch(err => setStatus(false, err.message)); }); els.raise.addEventListener("input", refreshSliderButtons); els.betMinus.addEventListener("click", () => stepBet(-1)); els.betPlus.addEventListener("click", () => stepBet(1)); checkHealth(); if (state.matchId) startPolling(); else updateActionButtons({ legalActions: [] }); }
+      function wire() { els.apiUrl.value = state.api; els.handle.value = state.handle; state.matchId = isMatchCode(state.matchId) ? state.matchId : ""; els.matchId.value = state.matchId; els.matchId.addEventListener("input", () => { els.matchId.value = normalizeMatchCode(els.matchId.value); }); els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Dragon"; saveBasics(); }); els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); els.join.addEventListener("click", () => joinMatch().catch(e => setStatus(false, e.message))); els.actions.addEventListener("click", (e) => { const btn = e.target.closest("button[data-action]"); if (btn && !btn.disabled) sendAction(btn.dataset.action).catch(err => setStatus(false, err.message)); }); els.raise.addEventListener("input", refreshSliderButtons); els.betMinus.addEventListener("click", () => stepBet(-1)); els.betPlus.addEventListener("click", () => stepBet(1)); checkHealth(); startBlindTimerTick(); if (state.matchId) startPolling(); else updateActionButtons({ legalActions: [] }); }
       wire();
