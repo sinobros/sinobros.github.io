@@ -3,7 +3,17 @@ import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createTable, TABLE_CENTER, PLAYER_ANCHOR } from "./table.js";
 import { createRoom } from "./room.js";
-import { SUITS, RANKS, CHIP_VALUES, createInitialState, placeBet, clearBets, dealRound, handTotal } from "./engine.js";
+import {
+  SUITS,
+  RANKS,
+  CHIP_VALUES,
+  STARTING_BALANCE,
+  createInitialState,
+  placeBet,
+  clearBets,
+  dealRound,
+  handTotal,
+} from "./engine.js";
 import { createCardMesh } from "./cards.js";
 import { createChip, createChipStack } from "./chips.js";
 import { createInputSystem } from "./input.js";
@@ -76,6 +86,23 @@ function totalStake(state) {
   return state.bets.player + state.bets.tie + state.bets.banker;
 }
 
+// Offline-only score tracking (Decision #9): balance itself is never
+// persisted across reloads (parity with the 2D game's fresh 1000 start),
+// only the best-ever balance, purely for local bragging rights. No fetch()
+// anywhere in this file or any other VR module.
+const BEST_BALANCE_KEY = "baccarat-vr-best-balance";
+
+function loadBestBalance() {
+  const stored = Number(localStorage.getItem(BEST_BALANCE_KEY));
+  return Number.isFinite(stored) && stored > 0 ? stored : STARTING_BALANCE;
+}
+
+function saveBestBalance(value) {
+  localStorage.setItem(BEST_BALANCE_KEY, String(value));
+}
+
+let bestBalance = loadBestBalance();
+
 let animating = false;
 const betZoneChipStacks = { player: null, tie: null, banker: null };
 const handMeshes = [];
@@ -93,6 +120,7 @@ function refreshUI() {
     balance: engineState.balance,
     wager,
     status: engineState.inRound ? "Dealing" : "Place your bet",
+    best: bestBalance,
   });
   ui.setDealEnabled(!animating && !engineState.inRound && wager > 0);
 }
@@ -170,7 +198,7 @@ async function startRound() {
   const stake = totalStake(engineState);
   if (stake <= 0) return;
   if (stake > engineState.balance) {
-    ui.setStatus({ balance: engineState.balance, wager: stake, status: "Not enough Dragon Gold" });
+    ui.setStatus({ balance: engineState.balance, wager: stake, status: "Not enough Dragon Gold", best: bestBalance });
     return;
   }
 
@@ -182,7 +210,7 @@ async function startRound() {
   const result = dealRound(engineState); // synchronous -- fully resolves the round now; this loop only replays it visually
   const midRoundBalance = originalBalance - stake;
 
-  ui.setStatus({ balance: midRoundBalance, wager: stake, status: "Dealing" });
+  ui.setStatus({ balance: midRoundBalance, wager: stake, status: "Dealing", best: bestBalance });
   clearHandVisuals();
 
   const seatMeshesByIndex = { player: [], banker: [] };
@@ -222,7 +250,11 @@ async function startRound() {
       await flyCardToSeat(mesh, table.shoeWorldPosition, targetPos, DEAL_ANIM_MS);
     } else if (event.type === "settle") {
       await wait(PAUSE_BEFORE_RESULT_MS);
-      ui.setStatus({ balance: engineState.balance, wager: 0, status: formatOutcomeText(result) });
+      if (engineState.balance > bestBalance) {
+        bestBalance = engineState.balance;
+        saveBestBalance(bestBalance);
+      }
+      ui.setStatus({ balance: engineState.balance, wager: 0, status: formatOutcomeText(result), best: bestBalance });
       await Promise.all([
         flashZoneHighlight(table.betZones[result.outcome]),
         settleChipStacks(result.outcome, originalBets),
