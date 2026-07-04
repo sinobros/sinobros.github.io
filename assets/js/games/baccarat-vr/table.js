@@ -184,6 +184,12 @@ export function createTable() {
   // Temporary lighting ends here -- room.js (Phase 6) supplies the real
   // themed lighting for the scene; this file no longer adds its own.
 
+  // Hand card-fan origins, between the shoe (z local -0.65) and the bet
+  // zones (z local +0.05). x sides match ZONE_DEFS: player renders on the
+  // world +x side, banker on -x (see the comment on ZONE_DEFS above).
+  const playerSeatLocal = new THREE.Vector3(0.4, FELT_TOP_Y + 0.003, -0.3);
+  const bankerSeatLocal = new THREE.Vector3(-0.4, FELT_TOP_Y + 0.003, -0.3);
+
   return {
     group,
     betZones,
@@ -191,5 +197,7 @@ export function createTable() {
     discardMarker,
     shoeWorldPosition: shoeMarker.position.clone().add(group.position),
     discardWorldPosition: discardMarker.position.clone().add(group.position),
+    playerSeatWorldPosition: playerSeatLocal.clone().add(group.position),
+    bankerSeatWorldPosition: bankerSeatLocal.clone().add(group.position),
   };
 }

@@ -305,3 +305,43 @@ export function tickPressFlash(mesh, now) {
     mesh.scale.copy(mesh.userData.baseScale || new THREE.Vector3(1, 1, 1));
   }
 }
+
+// Small upright plaque showing a hand's running total, hidden until the
+// first reveal for that seat (mirrors the 2D game's renderTotals()).
+export function createHandTotalLabel() {
+  const geometry = new THREE.PlaneGeometry(0.16, 0.09);
+  const entry = makeCanvasEntry(256, 144);
+  const material = new THREE.MeshStandardMaterial({
+    map: entry.texture,
+    transparent: true,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.visible = false;
+  mesh.userData.entry = entry;
+
+  function setTotal(total) {
+    const { ctx, canvas, texture } = entry;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(10, 10, 10, 0.85)";
+    roundRect(ctx, 4, 4, canvas.width - 8, canvas.height - 8, 14);
+    ctx.fill();
+    ctx.strokeStyle = COLOR_RED;
+    ctx.lineWidth = 4;
+    roundRect(ctx, 4, 4, canvas.width - 8, canvas.height - 8, 14);
+    ctx.stroke();
+    ctx.fillStyle = COLOR_YELLOW;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 84px Poppins, sans-serif";
+    ctx.fillText(String(total), canvas.width / 2, canvas.height / 2 + 4);
+    texture.needsUpdate = true;
+    mesh.visible = true;
+  }
+
+  function hide() {
+    mesh.visible = false;
+  }
+
+  return { mesh, setTotal, hide };
+}
