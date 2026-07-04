@@ -360,7 +360,7 @@ controls.update();
 // never renders on the shipped page.
 if (new URLSearchParams(window.location.search).has("debugCards")) {
   addDebugCardAndChipLayout(scene, table);
-  window.__debug = { camera, controls, scene, THREE, engineState, ui, inputSystem, table, startRound, SUITS, audio };
+  window.__debug = { camera, controls, scene, THREE, engineState, ui, inputSystem, table, startRound, SUITS, audio, renderer, room };
 }
 
 renderer.xr.addEventListener("sessionstart", () => {
@@ -412,6 +412,7 @@ function render() {
   const deltaMs = now - lastFrameTime;
   lastFrameTime = now;
   tick(deltaMs);
+  room.tick(deltaMs);
   pressableMeshes.forEach((mesh) => tickPressFlash(mesh, now));
   renderer.render(scene, camera);
 }
