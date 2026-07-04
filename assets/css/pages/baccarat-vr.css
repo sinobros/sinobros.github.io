@@ -1,0 +1,63 @@
+.baccarat-vr-main {
+  padding: 40px 64px 80px;
+}
+
+.vr-header {
+  margin-bottom: 24px;
+}
+
+.vr-title {
+  color: var(--yellow);
+  font-size: clamp(40px, 7vw, 88px);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin-bottom: 16px;
+}
+
+.vr-intro {
+  color: var(--yellow);
+  font-size: 18px;
+  line-height: 1.5;
+  opacity: 0.85;
+  max-width: 640px;
+  margin-bottom: 20px;
+}
+
+#vr-button-slot button {
+  background: var(--red);
+  color: #1a0007;
+  border: none;
+  padding: 14px 32px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+#baccarat-vr-canvas-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 720px;
+  background: #000000;
+  border: 1px solid #1f1f1f;
+  overflow: hidden;
+}
+
+#baccarat-vr-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 960px) {
+  .baccarat-vr-main {
+    padding: 24px;
+  }
+  #baccarat-vr-canvas-wrap {
+    aspect-ratio: 4 / 3;
+  }
+}
