@@ -36,7 +36,9 @@ export function createInputSystem() {
     const meshes = Array.from(interactives.values(), (e) => e.mesh);
     const hits = raycaster.intersectObjects(meshes, false);
     if (hits.length === 0) return null;
-    return interactives.get(hits[0].object.uuid) || null;
+    const entry = interactives.get(hits[0].object.uuid);
+    if (!entry) return null;
+    return { ...entry, distance: hits[0].distance };
   }
 
   function updateHover(sourceId, entry) {
@@ -117,6 +119,96 @@ export function createInputSystem() {
     };
   }
 
+  // XR controller path (Quest Touch etc.): a visible laser ray + reticle,
+  // raycasting every frame from the controller's target-ray space against
+  // the exact same interactives list the mouse path uses. `selectstart`
+  // fires the same select() this module's mouse path fires, per the plan's
+  // "unified event surface" goal -- no engine/UI code changes for this.
+  const DEFAULT_RAY_LENGTH = 3;
+
+  function computeControllerRay(controller) {
+    const origin = controller.getWorldPosition(new THREE.Vector3());
+    const direction = new THREE.Vector3(0, 0, -1)
+      .applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion()));
+    return { origin, direction };
+  }
+
+  function createControllerVisual() {
+    const rayGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, -1),
+    ]);
+    const line = new THREE.Line(
+      rayGeometry,
+      new THREE.LineBasicMaterial({ color: 0xffe600, transparent: true, opacity: 0.85 })
+    );
+    line.scale.z = DEFAULT_RAY_LENGTH;
+
+    const reticle = new THREE.Mesh(
+      new THREE.SphereGeometry(0.008, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffe600 })
+    );
+    reticle.position.z = -DEFAULT_RAY_LENGTH;
+
+    const grip = new THREE.Mesh(
+      new THREE.ConeGeometry(0.012, 0.05, 8),
+      new THREE.MeshStandardMaterial({ color: 0x1a0007, emissive: 0xe51e47, emissiveIntensity: 0.3 })
+    );
+    grip.rotation.x = -Math.PI / 2;
+    grip.position.z = -0.02;
+
+    const group = new THREE.Group();
+    group.add(line, reticle, grip);
+    return { group, line, reticle };
+  }
+
+  function pulseHaptic(controller, intensity, durationMs) {
+    const inputSource = controller.userData.inputSource;
+    const actuator = inputSource?.gamepad?.hapticActuators?.[0];
+    if (actuator && typeof actuator.pulse === "function") {
+      actuator.pulse(intensity, durationMs);
+    }
+  }
+
+  function attachController(renderer, index) {
+    const controller = renderer.xr.getController(index);
+    const sourceId = `controller-${index}`;
+    const visual = createControllerVisual();
+    controller.add(visual.group);
+
+    controller.addEventListener("connected", (event) => {
+      controller.userData.inputSource = event.data;
+    });
+    controller.addEventListener("disconnected", () => {
+      controller.userData.inputSource = null;
+      clearHover(sourceId);
+    });
+    controller.addEventListener("selectstart", () => {
+      const { origin, direction } = computeControllerRay(controller);
+      const entry = selectAt(sourceId, origin, direction);
+      if (entry) pulseHaptic(controller, 0.7, 40);
+    });
+
+    const unsubscribeHover = on("hoverStart", ({ sourceId: sid }) => {
+      if (sid === sourceId) pulseHaptic(controller, 0.25, 20);
+    });
+
+    function update() {
+      const { origin, direction } = computeControllerRay(controller);
+      const entry = pickAndHover(sourceId, origin, direction);
+      const length = entry ? Math.max(entry.distance, 0.05) : DEFAULT_RAY_LENGTH;
+      visual.line.scale.z = length;
+      visual.reticle.position.z = -length;
+    }
+
+    function dispose() {
+      unsubscribeHover();
+      clearHover(sourceId);
+    }
+
+    return { controller, sourceId, update, dispose };
+  }
+
   return {
     on,
     registerInteractive,
@@ -125,5 +217,6 @@ export function createInputSystem() {
     selectAt,
     clearHover,
     attachMouse,
+    attachController,
   };
 }

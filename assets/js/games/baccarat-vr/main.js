@@ -69,6 +69,9 @@ inputSystem.registerInteractive(ui.dealButton, "deal", "Deal");
 inputSystem.registerInteractive(ui.clearButton, "clearBets", "Clear Bets");
 inputSystem.registerInteractive(ui.rulesButton, "toggleRules", "Rules");
 
+const controllers = [inputSystem.attachController(renderer, 0), inputSystem.attachController(renderer, 1)];
+controllers.forEach(({ controller }) => scene.add(controller));
+
 function totalStake(state) {
   return state.bets.player + state.bets.tie + state.bets.banker;
 }
@@ -323,6 +326,9 @@ renderer.xr.addEventListener("sessionstart", () => {
 });
 renderer.xr.addEventListener("sessionend", () => {
   controls.enabled = true;
+  // Clear any hover left over from a controller so its highlighted mesh
+  // doesn't stay stuck scaled-up after the session ends.
+  controllers.forEach(({ sourceId }) => inputSystem.clearHover(sourceId));
 });
 
 function resize() {
@@ -343,6 +349,9 @@ let lastFrameTime = performance.now();
 
 function render() {
   if (controls.enabled) controls.update();
+  if (renderer.xr.isPresenting) {
+    controllers.forEach(({ update }) => update());
+  }
   const now = performance.now();
   const deltaMs = now - lastFrameTime;
   lastFrameTime = now;
