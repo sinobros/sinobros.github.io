@@ -181,10 +181,8 @@ export function createTable() {
   discardMarker.position.set(-0.75, FELT_TOP_Y + 0.01, -0.65);
   group.add(discardMarker);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-  const directional = new THREE.DirectionalLight(0xffffff, 0.7);
-  directional.position.set(0.5, 2, 1);
-  group.add(ambient, directional);
+  // Temporary lighting ends here -- room.js (Phase 6) supplies the real
+  // themed lighting for the scene; this file no longer adds its own.
 
   return {
     group,

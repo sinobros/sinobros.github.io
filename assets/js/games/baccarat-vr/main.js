@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createTable, TABLE_CENTER, PLAYER_ANCHOR } from "./table.js";
+import { createRoom } from "./room.js";
 import { SUITS, RANKS, CHIP_VALUES } from "./engine.js";
 import { createCardMesh } from "./cards.js";
 import { createChip } from "./chips.js";
@@ -34,10 +35,8 @@ vrButtonSlot.appendChild(
   })
 );
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-const directional = new THREE.DirectionalLight(0xffffff, 0.8);
-directional.position.set(1, 2, 1);
-scene.add(ambient, directional);
+const room = createRoom();
+scene.add(room.group);
 
 const table = createTable();
 scene.add(table.group);
