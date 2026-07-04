@@ -38,7 +38,7 @@
       .pot-display:hover { transform: translate(-50%, -50%) scale(1.05); }
       .pot-label { font-size: 11px; opacity: 0.7; letter-spacing: 2px; color: #166534; }
       .pot-amount { font-size: 28px; font-weight: 900; color: #166534; transition: all 0.3s ease; }
-      .actions { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+      .actions { position: relative; z-index: 1; display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
       .action-btn { background: #166534; color: #fefce8; border: 3px solid #052e16; padding: 14px 28px; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s cubic-bezier(0.23,1,0.32,1); text-transform: uppercase; border-radius: 6px; box-shadow: 0 4px 12px rgba(22,101,52,0.3); }
       .action-btn:hover { background: #052e16; transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 20px rgba(22,101,52,0.4); }
       .action-btn:active { transform: scale(0.96); }
