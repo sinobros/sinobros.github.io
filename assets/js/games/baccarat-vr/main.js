@@ -49,6 +49,30 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(canvasWrap.clientWidth, canvasWrap.clientHeight);
 canvasWrap.appendChild(renderer.domElement);
 
+// WebGL context can be lost (GPU reset, tab backgrounding on some devices,
+// too many contexts open) and silently restored by the browser -- without
+// these listeners the canvas would just go blank forever after a loss.
+renderer.domElement.addEventListener("webglcontextlost", (event) => {
+  event.preventDefault();
+});
+renderer.domElement.addEventListener("webglcontextrestored", () => {
+  resize();
+});
+
+// Pause the ambient bed while the tab is hidden -- setAnimationLoop already
+// stops calling render() on a hidden tab via the browser's own rAF
+// throttling, so this only needs to handle audio, not the render loop.
+// Tracks the user's own mute preference separately so returning to the tab
+// doesn't un-mute someone who muted deliberately.
+let userMuted = false;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    audio.setMuted(true);
+  } else if (!userMuted) {
+    audio.setMuted(false);
+  }
+});
+
 vrButtonSlot.appendChild(
   VRButton.createButton(renderer, {
     optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking"],
@@ -309,8 +333,8 @@ inputSystem.on("select", ({ mesh, action, data }) => {
   } else if (action === "toggleRules") {
     ui.toggleRules();
   } else if (action === "toggleMute") {
-    const muted = audio.toggleMute();
-    ui.setMuteLabel(muted);
+    userMuted = audio.toggleMute();
+    ui.setMuteLabel(userMuted);
   }
 });
 
@@ -353,6 +377,13 @@ function addDebugCardAndChipLayout(targetScene, tableParts) {
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(TABLE_CENTER);
 controls.enableDamping = true;
+// Keep desktop orbiting inside the room and above the floor -- prevents
+// dollying through the table felt or the walls, and stops the polar angle
+// from flipping under the floor.
+controls.minDistance = 0.4;
+controls.maxDistance = 5.5;
+controls.minPolarAngle = 0.05;
+controls.maxPolarAngle = Math.PI / 2 + 0.5;
 controls.update();
 
 // Phase 5 debug layout: lays out all 52 faces + the back + one of each chip
