@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { createTable, TABLE_CENTER, PLAYER_ANCHOR } from "./table.js";
+
+const EYE_HEIGHT = 1.5;
 
 const canvasWrap = document.getElementById("baccarat-vr-canvas-wrap");
 const vrButtonSlot = document.getElementById("vr-button-slot");
@@ -14,7 +17,7 @@ const camera = new THREE.PerspectiveCamera(
   0.01,
   100
 );
-camera.position.set(0, 1.5, 0.9);
+camera.position.set(PLAYER_ANCHOR.x, EYE_HEIGHT, PLAYER_ANCHOR.z);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.xr.enabled = true;
@@ -33,21 +36,29 @@ const directional = new THREE.DirectionalLight(0xffffff, 0.8);
 directional.position.set(1, 2, 1);
 scene.add(ambient, directional);
 
-// Placeholder so there is something to confirm renders before the real table (Phase 4) exists.
-const placeholder = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2, 0.05, 0.8),
-  new THREE.MeshStandardMaterial({ color: 0x0a0a0a })
-);
-placeholder.position.set(0, 0.85, -0.6);
-scene.add(placeholder);
+const table = createTable();
+scene.add(table.group);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.85, -0.6);
+controls.target.copy(TABLE_CENTER);
 controls.enableDamping = true;
 controls.update();
 
 renderer.xr.addEventListener("sessionstart", () => {
   controls.enabled = false;
+
+  // Offset the XR reference space so the headset's tracked floor origin lands
+  // at PLAYER_ANCHOR instead of the scene's world origin (0,0,0). Forward is
+  // already -Z for both the WebXR convention and PLAYER_ANCHOR_FORWARD, so no
+  // rotation offset is needed here.
+  const baseReferenceSpace = renderer.xr.getReferenceSpace();
+  if (baseReferenceSpace) {
+    const transform = new XRRigidTransform(
+      { x: -PLAYER_ANCHOR.x, y: -PLAYER_ANCHOR.y, z: -PLAYER_ANCHOR.z },
+      { x: 0, y: 0, z: 0, w: 1 }
+    );
+    renderer.xr.setReferenceSpace(baseReferenceSpace.getOffsetReferenceSpace(transform));
+  }
 });
 renderer.xr.addEventListener("sessionend", () => {
   controls.enabled = true;
