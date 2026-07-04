@@ -82,6 +82,11 @@ inputSystem.registerInteractive(ui.rulesButton, "toggleRules", "Rules");
 const controllers = [inputSystem.attachController(renderer, 0), inputSystem.attachController(renderer, 1)];
 controllers.forEach(({ controller }) => scene.add(controller));
 
+// Secondary input (Phase 11): a visible hand skeleton per slot, hot-swapping
+// with that slot's controller ray visual automatically (see attachHand).
+const hands = controllers.map((c, i) => inputSystem.attachHand(renderer, i, c.rayVisual));
+hands.forEach(({ hand }) => scene.add(hand));
+
 function totalStake(state) {
   return state.bets.player + state.bets.tie + state.bets.banker;
 }

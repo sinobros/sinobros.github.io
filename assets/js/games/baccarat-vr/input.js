@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { XRHandModelFactory } from "three/addons/webxr/XRHandModelFactory.js";
 
 // Unified input system: any input source (desktop mouse now, XR controller
 // rays in Phase 9, XR hand pinch in Phase 11) casts a ray and calls
@@ -206,7 +207,49 @@ export function createInputSystem() {
       clearHover(sourceId);
     }
 
-    return { controller, sourceId, update, dispose };
+    return { controller, sourceId, update, dispose, rayVisual: visual.group };
+  }
+
+  // XR hand-tracking path (secondary input, Phase 11): getController(index)
+  // and getHand(index) for the same index are two "spaces" (target-ray vs.
+  // joint skeleton) of the *same* underlying WebXRController, which fans
+  // every connected/disconnected/selectstart event out to both -- so the
+  // ray/select logic already wired up in attachController for this index
+  // keeps working unchanged when a hand occupies the slot instead of a
+  // physical controller. This function only adds the visible hand skeleton
+  // and hides/shows the sibling controller's laser ray to match whichever
+  // input is actually present. Uses XRHandModelFactory's 'boxes' primitive
+  // mode -- never 'mesh' mode, which fetches GLTF models from a CDN (see
+  // assets/vendor/three/README.md).
+  const handModelFactory = new XRHandModelFactory();
+
+  function attachHand(renderer, index, controllerRayVisual) {
+    const hand = renderer.xr.getHand(index);
+    const handModel = handModelFactory.createHandModel(hand, "boxes");
+    hand.add(handModel);
+
+    function onConnected(event) {
+      // This fires for controllers at this slot too (see comment above) --
+      // only react when hand-tracking data is actually present, and fail
+      // silently otherwise (no hand joints exposed -> nothing to show,
+      // controller path is untouched).
+      if (!event.data?.hand) return;
+      if (controllerRayVisual) controllerRayVisual.visible = false;
+    }
+
+    function onDisconnected() {
+      if (controllerRayVisual) controllerRayVisual.visible = true;
+    }
+
+    hand.addEventListener("connected", onConnected);
+    hand.addEventListener("disconnected", onDisconnected);
+
+    function dispose() {
+      hand.removeEventListener("connected", onConnected);
+      hand.removeEventListener("disconnected", onDisconnected);
+    }
+
+    return { hand, handModel, dispose };
   }
 
   return {
@@ -218,5 +261,6 @@ export function createInputSystem() {
     clearHover,
     attachMouse,
     attachController,
+    attachHand,
   };
 }
