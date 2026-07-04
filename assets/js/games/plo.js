@@ -11,7 +11,8 @@
         poller: null,
         blindTimer: null,
         blindTimerReceivedAt: 0,
-        timerTicker: null
+        timerTicker: null,
+        lastActionPromptKey: ""
       };
       const $ = (id) => document.getElementById(id);
       const els = { 
@@ -31,6 +32,15 @@
         localStorage.setItem("sinobrosPloHandle", state.handle); 
         if (state.matchId) localStorage.setItem("sinobrosPloMatchId", state.matchId); 
         if (state.playerId) localStorage.setItem("sinobrosPloPlayerId", state.playerId); 
+      }
+      function syncApiFromInput() {
+        state.api = els.apiUrl.value.trim() || DEFAULT_API;
+        saveBasics();
+      }
+      function handleApiChange() {
+        syncApiFromInput();
+        checkHealth();
+        startPolling();
       }
       function api(path) { return state.api.replace(/\/$/, "") + path; }
       function normalizeMatchCode(value) { return String(value || "").replace(/\D/g, "").slice(0, 4); }
@@ -204,6 +214,34 @@
           els.raiseInput.value = wagerAction.max;
           els.raiseBtn.textContent = wagerAction.action === "bet" ? "BET POT" : "RAISE POT";
         }
+
+        maybeRevealActions(snapshot, legalActions);
+      }
+
+      function maybeRevealActions(snapshot, legalActions) {
+        const isHeroAction = snapshot.hand?.status === "active" &&
+          snapshot.hand.actorId === state.playerId &&
+          legalActions.length > 0;
+        const promptKey = isHeroAction
+          ? [
+              snapshot.matchId,
+              snapshot.hand.street,
+              snapshot.hand.pot,
+              legalActions.map(a => `${a.action}:${a.amount || a.min || ""}:${a.max || ""}`).join("|")
+            ].join(":")
+          : "";
+
+        if (!promptKey) {
+          state.lastActionPromptKey = "";
+          return;
+        }
+        if (promptKey === state.lastActionPromptKey) return;
+
+        state.lastActionPromptKey = promptKey;
+        requestAnimationFrame(() => {
+          const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+          document.getElementById("action-area")?.scrollIntoView({ behavior, block: "center" });
+        });
       }
 
       async function poll() { 
@@ -224,6 +262,7 @@
       }
 
       async function createMatch() { 
+        syncApiFromInput();
         state.handle = els.handle.value.trim() || "Sunset"; 
         const data = await request("/api/matches", { method:"POST", body: JSON.stringify({ handle: state.handle, game: "plo" }) }); 
         state.matchId = data.matchId; 
@@ -234,6 +273,7 @@
         startPolling(); 
       }
       async function joinMatch() { 
+        syncApiFromInput();
         state.handle = els.handle.value.trim() || "Sunset"; 
         state.matchId = normalizeMatchCode(els.matchId.value); 
         els.matchId.value = state.matchId; 
@@ -264,7 +304,7 @@
         els.matchId.value = state.matchId; 
         
         els.matchId.addEventListener("input", () => { els.matchId.value = normalizeMatchCode(els.matchId.value); }); 
-        els.apiUrl.addEventListener("change", () => { state.api = els.apiUrl.value.trim() || DEFAULT_API; saveBasics(); checkHealth(); startPolling(); }); 
+        els.apiUrl.addEventListener("change", handleApiChange); 
         els.handle.addEventListener("change", () => { state.handle = els.handle.value.trim() || "Sunset"; saveBasics(); }); 
         
         els.create.addEventListener("click", () => createMatch().catch(e => setStatus(false, e.message))); 
@@ -302,6 +342,7 @@
         if (state.poller) clearInterval(state.poller);
         state.matchId = ""; state.playerId = ""; state.snapshot = null;
         state.blindTimer = null; state.blindTimerReceivedAt = 0;
+        state.lastActionPromptKey = "";
         els.gameLog.innerHTML = '';
         log('Match left. Create or join a new one.', true);
         els.heroStack.textContent = '10,000';
