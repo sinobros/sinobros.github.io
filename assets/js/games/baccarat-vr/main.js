@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createTable, TABLE_CENTER, PLAYER_ANCHOR } from "./table.js";
+import { SUITS, RANKS, CHIP_VALUES } from "./engine.js";
+import { createCardMesh } from "./cards.js";
+import { createChip } from "./chips.js";
 
 const EYE_HEIGHT = 1.5;
 
@@ -39,10 +42,52 @@ scene.add(ambient, directional);
 const table = createTable();
 scene.add(table.group);
 
+function addDebugCardAndChipLayout(targetScene, tableParts) {
+  const originX = tableParts.group.position.x;
+  const originZ = tableParts.group.position.z;
+  const baseY = table.group.position.y + 0.9;
+  const cols = RANKS.length;
+  const colSpacing = 0.075;
+  const rowSpacing = 0.11;
+  const startX = originX - ((cols - 1) * colSpacing) / 2;
+
+  SUITS.forEach((suit, suitIndex) => {
+    RANKS.forEach((rank, rankIndex) => {
+      const card = createCardMesh(rank, suit);
+      card.rotation.x = 0; // face up, for legibility review only
+      card.position.set(
+        startX + rankIndex * colSpacing,
+        baseY,
+        originZ - 0.6 - suitIndex * rowSpacing
+      );
+      targetScene.add(card);
+    });
+  });
+
+  const backCard = createCardMesh("A", SUITS[0]);
+  backCard.position.set(startX, baseY, originZ - 0.6 - SUITS.length * rowSpacing);
+  targetScene.add(backCard);
+
+  const chipStartX = originX - ((CHIP_VALUES.length - 1) * 0.09) / 2;
+  CHIP_VALUES.forEach((value, i) => {
+    const chip = createChip(value);
+    chip.position.set(chipStartX + i * 0.09, baseY + 0.05, originZ - 0.6 - (SUITS.length + 1) * rowSpacing);
+    targetScene.add(chip);
+  });
+}
+
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(TABLE_CENTER);
 controls.enableDamping = true;
 controls.update();
+
+// Phase 5 debug layout: lays out all 52 faces + the back + one of each chip
+// denomination for legibility verification. Gated behind ?debugCards=1 so it
+// never renders on the shipped page.
+if (new URLSearchParams(window.location.search).has("debugCards")) {
+  addDebugCardAndChipLayout(scene, table);
+  window.__debug = { camera, controls, scene, THREE };
+}
 
 renderer.xr.addEventListener("sessionstart", () => {
   controls.enabled = false;
