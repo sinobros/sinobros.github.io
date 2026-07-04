@@ -222,6 +222,10 @@ export function createUI() {
   rulesButton.position.set(-0.35, 1.02, -0.35);
   group.add(rulesButton);
 
+  const muteButton = createButtonMesh({ width: 0.14, height: 0.08, depth: 0.05, label: "SOUND", primary: false });
+  muteButton.position.set(-0.35, 1.02, -0.2);
+  group.add(muteButton);
+
   const rulesPanel = createRulesPanelMesh();
   rulesPanel.position.set(0, 1.5, -0.55);
   rulesPanel.rotation.x = 0.15;
@@ -268,10 +272,16 @@ export function createUI() {
     return rulesPanel.visible;
   }
 
+  function setMuteLabel(muted) {
+    drawButtonLabel(muteButton.userData.labelEntry, muted ? "MUTED" : "SOUND", false, false);
+  }
+
   return {
     group,
     statusBoard,
     dealButton,
+    muteButton,
+    setMuteLabel,
     clearButton,
     rulesButton,
     rulesPanel,

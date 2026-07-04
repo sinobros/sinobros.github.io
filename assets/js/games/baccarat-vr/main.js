@@ -19,6 +19,7 @@ import { createChip, createChipStack } from "./chips.js";
 import { createInputSystem } from "./input.js";
 import { createUI, applyHoverScale, flashPress, tickPressFlash, createHandTotalLabel } from "./ui.js";
 import { tween, wait, tick, easeInOutQuad, easeOutQuad } from "./animate.js";
+import { createAudioSystem } from "./audio.js";
 
 const DEAL_GAP_MS = 700;
 const DEAL_ANIM_MS = 900;
@@ -66,8 +67,11 @@ scene.add(ui.group);
 const engineState = createInitialState();
 ui.setSelectedChip(engineState.chip);
 
+const audio = createAudioSystem(camera);
+ui.setMuteLabel(audio.isMuted());
+
 const inputSystem = createInputSystem();
-const pressableMeshes = [ui.dealButton, ui.clearButton, ui.rulesButton, ...ui.chipMeshesByValue.values()];
+const pressableMeshes = [ui.dealButton, ui.clearButton, ui.rulesButton, ui.muteButton, ...ui.chipMeshesByValue.values()];
 
 Object.values(table.betZones).forEach((mesh) => {
   inputSystem.registerInteractive(mesh, "placeBet", mesh.userData.betSide, { side: mesh.userData.betSide });
@@ -78,6 +82,7 @@ ui.chipMeshesByValue.forEach((mesh, value) => {
 inputSystem.registerInteractive(ui.dealButton, "deal", "Deal");
 inputSystem.registerInteractive(ui.clearButton, "clearBets", "Clear Bets");
 inputSystem.registerInteractive(ui.rulesButton, "toggleRules", "Rules");
+inputSystem.registerInteractive(ui.muteButton, "toggleMute", "Mute");
 
 const controllers = [inputSystem.attachController(renderer, 0), inputSystem.attachController(renderer, 1)];
 controllers.forEach(({ controller }) => scene.add(controller));
@@ -233,11 +238,13 @@ async function startRound() {
       handMeshes.push(mesh);
       seatMeshesByIndex[event.seat][index] = mesh;
       seatCardsSoFar[event.seat].push(event.card);
+      audio.playAt(mesh, "cardSlide", { volume: 0.35 });
       await flyCardToSeat(mesh, table.shoeWorldPosition, targetPos, DEAL_ANIM_MS);
       await wait(DEAL_GAP_MS);
     } else if (event.type === "reveal") {
       const mesh = seatMeshesByIndex[event.seat][event.cardIndex];
       await tween(mesh, { rotation: { x: 0 } }, FLIP_ANIM_MS, easeInOutQuad);
+      audio.playAt(mesh, "cardFlip", { volume: 0.4 });
       totalLabels[event.seat].setTotal(handTotal(seatCardsSoFar[event.seat]));
       await wait(event.cardIndex === 0 ? 180 : 400);
     } else if (event.type === "thirdCard") {
@@ -252,6 +259,7 @@ async function startRound() {
       handMeshes.push(mesh);
       seatMeshesByIndex[event.seat][index] = mesh;
       seatCardsSoFar[event.seat].push(event.card);
+      audio.playAt(mesh, "cardSlide", { volume: 0.35 });
       await flyCardToSeat(mesh, table.shoeWorldPosition, targetPos, DEAL_ANIM_MS);
     } else if (event.type === "settle") {
       await wait(PAUSE_BEFORE_RESULT_MS);
@@ -260,6 +268,11 @@ async function startRound() {
         saveBestBalance(bestBalance);
       }
       ui.setStatus({ balance: engineState.balance, wager: 0, status: formatOutcomeText(result), best: bestBalance });
+      const outcomeSound = result.net > 0 ? "winChime" : result.net < 0 ? "loseThud" : "tieTone";
+      audio.playAt(table.betZones[result.outcome], outcomeSound, { volume: 0.55, refDistance: 0.8 });
+      if (result.net > 0) {
+        audio.playAt(table.betZones[result.outcome], "payoutCascade", { volume: 0.4, refDistance: 0.8 });
+      }
       await Promise.all([
         flashZoneHighlight(table.betZones[result.outcome]),
         settleChipStacks(result.outcome, originalBets),
@@ -275,6 +288,7 @@ inputSystem.on("hoverStart", ({ mesh }) => applyHoverScale(mesh, true));
 inputSystem.on("hoverEnd", ({ mesh }) => applyHoverScale(mesh, false));
 
 inputSystem.on("select", ({ mesh, action, data }) => {
+  audio.resumeContext(); // first user gesture -- browser autoplay policy
   if (animating) return;
   flashPress(mesh);
 
@@ -285,6 +299,7 @@ inputSystem.on("select", ({ mesh, action, data }) => {
     placeBet(engineState, data.side);
     updateBetZoneChipStacks();
     refreshUI();
+    audio.playAt(mesh, "chipPlace", { volume: 0.5 });
   } else if (action === "clearBets") {
     clearBets(engineState);
     updateBetZoneChipStacks();
@@ -293,6 +308,9 @@ inputSystem.on("select", ({ mesh, action, data }) => {
     startRound();
   } else if (action === "toggleRules") {
     ui.toggleRules();
+  } else if (action === "toggleMute") {
+    const muted = audio.toggleMute();
+    ui.setMuteLabel(muted);
   }
 });
 
@@ -342,11 +360,12 @@ controls.update();
 // never renders on the shipped page.
 if (new URLSearchParams(window.location.search).has("debugCards")) {
   addDebugCardAndChipLayout(scene, table);
-  window.__debug = { camera, controls, scene, THREE, engineState, ui, inputSystem, table, startRound, SUITS };
+  window.__debug = { camera, controls, scene, THREE, engineState, ui, inputSystem, table, startRound, SUITS, audio };
 }
 
 renderer.xr.addEventListener("sessionstart", () => {
   controls.enabled = false;
+  audio.resumeContext();
 
   // Offset the XR reference space so the headset's tracked floor origin lands
   // at PLAYER_ANCHOR instead of the scene's world origin (0,0,0). Forward is
